@@ -10,6 +10,7 @@ CPPFLAGS := -I src/
 DEBUG_FLAGS := -g
 RELEASE_FLAGS := -O3
 
+HEADERS := $(shell find $(SOURCE_DIR) -type f -name "*.h")
 SOURCES := $(shell find $(SOURCE_DIR) -type f -name "*.c")
 DEBUG_OBJECTS := $(patsubst $(SOURCE_DIR)/%.c,$(DEBUG_DIR)/%.o,$(SOURCES))
 RELEASE_OBJECTS := $(patsubst $(SOURCE_DIR)/%.c,$(RELEASE_DIR)/%.o,$(SOURCES))
@@ -20,8 +21,8 @@ debug: $(DEBUG_TARGET)
 $(DEBUG_TARGET): $(DEBUG_OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG_FLAGS) $^ -o $@
 
-$(DEBUG_DIR)/%.o: $(SOURCE_DIR)/%.c
-	mkdir -p $(@D) && $(CC) -c $(CFLAGS) $(LDFLAGS) $(DEBUG_FLAGS) $^ -o $@
+$(DEBUG_DIR)/%.o: $(SOURCE_DIR)/%.c $(HEADERS)
+	mkdir -p $(@D) && $(CC) -c $(CPPFLAGS) $(CFLAGS) $(DEBUG_FLAGS) $< -o $@
 
 .PHONY: release
 release: $(RELEASE_TARGET)
@@ -29,8 +30,8 @@ release: $(RELEASE_TARGET)
 $(RELEASE_TARGET): $(RELEASE_OBJECTS)
 	$(CC) $(CFLAGS) $(LDFLAGS) $(RELEASE_FLAGS) $^ -o $@
 
-$(RELEASE_DIR)/%.o: $(SOURCE_DIR)/%.c
-	mkdir -p $(@D) && $(CC) -c $(CFLAGS) $(LDFLAGS) $(RELEASE_FLAGS) $^ -o $@
+$(RELEASE_DIR)/%.o: $(SOURCE_DIR)/%.c $(HEADERS)
+	mkdir -p $(@D) && $(CC) -c $(CPPFLAGS) $(CFLAGS) $(RELEASE_FLAGS) $< -o $@
 
 .PHONY: clean
 clean:
