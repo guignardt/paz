@@ -1,7 +1,7 @@
 #include <string.h>
 #include <ctype.h>
 
-#include "diagnostics/report.h"
+#include "diagnostic/report.h"
 #include "phase/tokenize.h"
 
 typedef struct Tokenizer {

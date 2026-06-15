@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "util/alloc.h"
-#include "diagnostics/log.h"
+#include "diagnostic/log.h"
 
 #define DUMMY_ERROR_CODE (-1)
 

@@ -1,4 +1,4 @@
-#include "diagnostics/report.h"
+#include "diagnostic/report.h"
 
 static Reporter global_reporter = {
     .begin = NULL,

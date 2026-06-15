@@ -2,7 +2,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-#include "diagnostics/log.h"
+#include "diagnostic/log.h"
 
 #include "data/source.h"
 #include "data/token.h"
