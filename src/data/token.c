@@ -6,6 +6,19 @@
 
 static TokenKindInfo token_kind_infos[] = {
     [TOKEN_COMMA] =         {   1,  ",",    "`,`"           },
+    [TOKEN_COLON] =         {   1,  ":",    "`:`"           },
+    [TOKEN_SEMICOLON] =     {   1,  ";",    "`;`"           },
+    [TOKEN_EQUAL] =         {   1,  "=",    "`=`"           },
+    [TOKEN_ARROW] =         {   2,  "->",   "`->`"          },
+    [TOKEN_DOUBLE_ARROW] =  {   2,  "=>",   "`=>`"          },
+    
+    [TOKEN_PLUS] =          {   1,  "+",    "`+`"           },
+    [TOKEN_MINUS] =         {   1,  "-",    "`-`"           },
+    [TOKEN_STAR] =          {   1,  "*",    "`*`"           },
+    [TOKEN_SLASH] =         {   1,  "/",    "`/`"           },
+    [TOKEN_PERCENT] =       {   1,  "%",    "`%`"           },
+
+    [TOKEN_FN] =            {   2,  "fn",   "`fn`"          },
 
     [TOKEN_IDENTIFIER] =    {   -1, {0},    "<identifier>"  },
 };

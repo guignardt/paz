@@ -60,6 +60,7 @@ static void default_reporter_begin(Severity severity, int32_t code) {
 
 static void default_reporter_message_raw(BOXED(char) message) {
     log(default_reporter_current_severity, "%s", message);
+    free(message);
 }
 
 static void default_reporter_end(void) {}

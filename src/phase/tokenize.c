@@ -92,6 +92,24 @@ static void tokenize_identifier_or_keyword(Tokenizer* tokenizer) {
         }
         break;
     }
+
+    for (TokenKind kind = TOKEN_KEYWORD_MIN; kind <= TOKEN_KEYWORD_MAX; kind++) {
+        TokenKindInfo info = token_kind_info(kind);
+        if (info.len != tokenizer->pos - start) {
+            continue;
+        }
+        if (strncmp(tokenizer->text + start, info.exact_chars, info.len)) {
+            continue;
+        }
+
+        Token token = {
+            .kind = kind,
+            .range = (Range) { start, tokenizer->pos },
+        };
+        token_stream_push(tokenizer->dst, token);
+        return;
+    }
+    
     Token token = {
         .kind = TOKEN_IDENTIFIER,
         .range = (Range) { start, tokenizer->pos },
@@ -120,8 +138,10 @@ static void tokenize_punctuation(Tokenizer* tokenizer) {
         report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
         report_message("unexpected character");
         report_end();
+        tokenizer->pos++;
         return;
     }
 
+    tokenizer->pos += len;
     token_stream_push(tokenizer->dst, token);
 }
