@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "util/buf.h"
+#include "util/alloc.h"
 
 typedef struct Source {
     char const* path;
@@ -12,6 +12,6 @@ typedef struct Source {
     size_t num_lines;
 } Source;
 
-void source_new(char const* path, BOXED(char) text, Source* dst);
-int source_load(char const* path, FILE* file, Source* dst);
+void source_new(char const* path, BOXED(char) text, OUT(Source) dst);
+int source_load(char const* path, FILE* file, OUT(Source) dst);
 void source_free(OWNED(Source) source);

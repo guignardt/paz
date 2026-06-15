@@ -7,7 +7,7 @@ RELEASE_DIR := $(BUILD_DIR)/release
 RELEASE_TARGET := $(RELEASE_DIR)/paz
 
 CPPFLAGS := -I src/
-DEBUG_FLAGS := -g
+DEBUG_FLAGS := -g -fsanitize=address,undefined
 RELEASE_FLAGS := -O3
 
 HEADERS := $(shell find $(SOURCE_DIR) -type f -name "*.h")
