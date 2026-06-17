@@ -25,7 +25,10 @@ ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
                 case TOKEN_IDENTIFIER: break;
                 default: return PARSE_ERROR;
             }
+            break;
     }
+
+    // head is identifier
 
     Range range = head.as.single.range;
     AstIdentifier identifier = {

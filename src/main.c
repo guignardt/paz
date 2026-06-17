@@ -44,13 +44,13 @@ int main(int argc, char const** argv) {
     for (size_t i = 0; i < source.num_lines; i++) {
         eprintf("%zu ", source.line_indices[i]);
     }
-    eprintf("\n\n");
+    eprintf("\n");
 
     TokenStream tokens;
     tokenize(source.text, &tokens);
     
-    // eprintf("=== tokens ===\n");
-    // debug_tokens(token_stream_it(tokens));
+    eprintf("\n=== tokens ===\n");
+    debug_tokens(token_stream_it(tokens));
 
     if (report_count(SEVERITY_ERROR) > 0) {
         goto tokenize_error_end;
@@ -66,7 +66,7 @@ int main(int argc, char const** argv) {
     AstProgram program;
     parse_program(parser, &program);
 
-    eprintf("=== AST ===\n");
+    eprintf("\n=== AST ===\n");
     debug_ast_program(program);
 
     if (report_count(SEVERITY_ERROR) > 0) {
