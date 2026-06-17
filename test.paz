@@ -1,1 +1,1 @@
-main :: fn (val: Int) -> Int => (val + val);
+const a: Int = b;

@@ -6,10 +6,10 @@
 
 #include "data/source.h"
 #include "data/token.h"
+#include "data/ast.h"
 
 #include "phase/tokenize.h"
-
-static void debug_tokens(TokenIt it, size_t indent);
+#include "phase/parse.h"
 
 int main(int argc, char const** argv) {
     set_reporter(default_reporter());
@@ -24,59 +24,60 @@ int main(int argc, char const** argv) {
         path = argv[1];
         input = fopen(path, "r");
         if (input == NULL) {
-            fprintf(stderr, "failed to open source file");
+            log(SEVERITY_ERROR, "failed to open source file");
             return -1;
         }
     }
 
     Source source;
     if (source_load(path, input, &source)) {
-        fprintf(stderr, "failed to read source file");
+        log(SEVERITY_ERROR, "failed to read source file");
         return -1;
     }
     if (!input_stdin) {
         fclose(input);
     }
 
-    printf("=== source code ===\n");
-    printf("%s\n", source.text);
-    printf("=== line indices ===\n");
+    eprintf("=== source code ===\n");
+    eprintf("%s\n", source.text);
+    eprintf("=== line indices ===\n");
     for (size_t i = 0; i < source.num_lines; i++) {
-        printf("%zu ", source.line_indices[i]);
+        eprintf("%zu ", source.line_indices[i]);
     }
-    printf("\n\n");
+    eprintf("\n\n");
 
     TokenStream tokens;
     tokenize(source.text, &tokens);
     
-    debug_tokens(token_stream_it(tokens), 0);
+    // eprintf("=== tokens ===\n");
+    // debug_tokens(token_stream_it(tokens));
 
+    if (report_count(SEVERITY_ERROR) > 0) {
+        goto tokenize_error_end;
+    }
+
+    AstStorage ast_storage = ast_storage_new();
+    TokenIt token_it = token_stream_it(tokens);
+    Parser parser = (Parser) {
+        .text = source.text,
+        .tokens = &token_it,
+        .storage = &ast_storage,
+    };
+    AstProgram program;
+    parse_program(parser, &program);
+
+    eprintf("=== AST ===\n");
+    debug_ast_program(program);
+
+    if (report_count(SEVERITY_ERROR) > 0) {
+        goto parse_error_end;
+    }
+
+parse_error_end:
+    ast_storage_free(&ast_storage);
+tokenize_error_end:
     token_stream_free(&tokens);
     source_free(&source);
 
     return 0;
-}
-
-static void debug_tokens(TokenIt it, size_t indent) {
-    TokenTree token_tree;
-    while (!token_it_next(&it, &token_tree)) {
-        switch (token_tree.kind) {
-            case TOKEN_TREE_SINGLE:
-                eprintf("%*stoken kind=%d range=%zu-%zu\n",
-                    4 * (int)indent, "",
-                    (int)token_tree.as.single.kind,
-                    token_tree.as.single.range.start, token_tree.as.single.range.end
-                );
-                break;
-            case TOKEN_TREE_GROUP:
-                eprintf("%*sgroup delim=%d range=%zu-%zu\n",
-                    4 * (int)indent, "",
-                    (int)token_tree.as.group.delim,
-                    token_tree.as.group.left.start,
-                    token_tree.as.group.right.end
-                );
-                debug_tokens(token_group_contents(token_tree.as.group), indent + 1);
-                break;
-        }
-    }
 }

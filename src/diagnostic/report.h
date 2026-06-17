@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "util/alloc.h"
+#include "util/string.h"
 #include "diagnostic/log.h"
 
 #define DUMMY_ERROR_CODE (-1)
@@ -22,7 +23,7 @@ void report_message_raw(BOXED(char) message);
 void report_end(void);
 
 // number of reports since the last `set_reporter` call
-size_t report_count(void);
+size_t report_count(Severity severity);
 
 // prints to stderr
 Reporter default_reporter(void);

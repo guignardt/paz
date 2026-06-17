@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include "diagnostic/report.h"
 
 static Reporter global_reporter = {
@@ -5,19 +7,23 @@ static Reporter global_reporter = {
     .end = NULL,
     .message_raw = NULL,
 };
-static size_t global_report_count = 0;
+static size_t global_report_count[5] = {0};
 
 void set_reporter(Reporter reporter) {
     global_reporter = reporter;
-    global_report_count = 0;
+    global_report_count[SEVERITY_ERROR] = 0;
+    global_report_count[SEVERITY_WARNING] = 0;
+    global_report_count[SEVERITY_INFO] = 0;
+    global_report_count[SEVERITY_DEBUG] = 0;
+    global_report_count[SEVERITY_NONE] = 0;
 }
 
-size_t report_count(void) {
-    return global_report_count;
+size_t report_count(Severity severity) {
+    return global_report_count[severity];
 }
 
 void report_begin(Severity severity, int32_t code) {
-    global_report_count++;
+    global_report_count[severity]++;
     void (*func)(Severity, int32_t) = global_reporter.begin;
     if (func) {
         (func)(severity, code);

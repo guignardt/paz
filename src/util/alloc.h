@@ -1,6 +1,7 @@
 #pragma once
 
-#include <stdlib.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #define OUT(T) T*
 
@@ -23,8 +24,6 @@ BOXED(void) realloc_or_exit(BOXED(void) data, size_t size);
 void reserve(BOXED(void)* p_buf, size_t* p_cap, size_t len, size_t size);
 
 typedef struct Range {
-    size_t start;
-    size_t end;
+    uint32_t start;
+    uint32_t end;
 } Range;
-
-BOXED(char) format(char const* fmt, ...);

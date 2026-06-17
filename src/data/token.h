@@ -20,6 +20,8 @@ typedef enum TokenKind {
     TOKEN_COMMA,
     TOKEN_COLON,
     TOKEN_SEMICOLON,
+    TOKEN_COLON_EQUAL,
+    TOKEN_COLON_COLON,
     TOKEN_EQUAL,
     TOKEN_ARROW,
     TOKEN_DOUBLE_ARROW,
@@ -30,6 +32,8 @@ typedef enum TokenKind {
     TOKEN_SLASH,
     TOKEN_PERCENT,
 
+    TOKEN_CONST,
+    TOKEN_LET,
     TOKEN_FN,
 
     TOKEN_IDENTIFIER,
@@ -37,7 +41,7 @@ typedef enum TokenKind {
 
 #define TOKEN_PUNCT_MIN (TOKEN_COMMA)
 #define TOKEN_PUNCT_MAX (TOKEN_PERCENT)
-#define TOKEN_KEYWORD_MIN (TOKEN_FN)
+#define TOKEN_KEYWORD_MIN (TOKEN_CONST)
 #define TOKEN_KEYWORD_MAX (TOKEN_FN)
 
 typedef struct TokenKindInfo {
@@ -87,8 +91,14 @@ TokenDelimInfo token_delim_info(TokenDelim delim);
 
 TokenIt token_stream_it(TokenStream stream);
 
+bool token_it_end(TokenIt it);
+// all return nonzero if didn't return
 int token_it_get(TokenIt it, OUT(TokenTree) dst);
 int token_it_next(TokenIt* it, OUT(TokenTree) dst);
+int token_it_match_single(TokenIt* it, TokenKind kind, OUT(Token) dst);
+int token_it_match_group(TokenIt* it, TokenDelim delim, OUT(TokenGroup) dst);
+int token_it_find_single(TokenIt* it, TokenKind kind, OUT(Token) dst);
+int token_it_find_group(TokenIt* it, TokenDelim delim, OUT(TokenGroup) dst);
 
 TokenIt token_group_contents(TokenGroup group);
 
@@ -113,3 +123,5 @@ void token_stream_close_group(
 );
 
 void token_stream_free(OWNED(TokenStream) stream);
+
+void debug_tokens(TokenIt tokens);

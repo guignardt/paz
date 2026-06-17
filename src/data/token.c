@@ -1,26 +1,31 @@
 #include <stdbool.h>
-#include <assert.h>
 #include <stdint.h>
 
 #include "data/token.h"
 
+#include "util/debug.h"
+
 static TokenKindInfo token_kind_infos[] = {
-    [TOKEN_COMMA] =         {   1,  ",",    "`,`"           },
-    [TOKEN_COLON] =         {   1,  ":",    "`:`"           },
-    [TOKEN_SEMICOLON] =     {   1,  ";",    "`;`"           },
-    [TOKEN_EQUAL] =         {   1,  "=",    "`=`"           },
-    [TOKEN_ARROW] =         {   2,  "->",   "`->`"          },
-    [TOKEN_DOUBLE_ARROW] =  {   2,  "=>",   "`=>`"          },
-    
-    [TOKEN_PLUS] =          {   1,  "+",    "`+`"           },
-    [TOKEN_MINUS] =         {   1,  "-",    "`-`"           },
-    [TOKEN_STAR] =          {   1,  "*",    "`*`"           },
-    [TOKEN_SLASH] =         {   1,  "/",    "`/`"           },
-    [TOKEN_PERCENT] =       {   1,  "%",    "`%`"           },
+    [TOKEN_COMMA] =         {   1,  ",",        "`,`"           },
+    [TOKEN_COLON] =         {   1,  ":",        "`:`"           },
+    [TOKEN_SEMICOLON] =     {   1,  ";",        "`;`"           },
+    [TOKEN_COLON_EQUAL] =   {   2,  ":=",       "`:=`"          },
+    [TOKEN_COLON_COLON] =   {   2,  "::",       "`::`"          },
+    [TOKEN_EQUAL] =         {   1,  "=",        "`=`"           },
+    [TOKEN_ARROW] =         {   2,  "->",       "`->`"          },
+    [TOKEN_DOUBLE_ARROW] =  {   2,  "=>",       "`=>`"          },
 
-    [TOKEN_FN] =            {   2,  "fn",   "`fn`"          },
+    [TOKEN_PLUS] =          {   1,  "+",        "`+`"           },
+    [TOKEN_MINUS] =         {   1,  "-",        "`-`"           },
+    [TOKEN_STAR] =          {   1,  "*",        "`*`"           },
+    [TOKEN_SLASH] =         {   1,  "/",        "`/`"           },
+    [TOKEN_PERCENT] =       {   1,  "%",        "`%`"           },
 
-    [TOKEN_IDENTIFIER] =    {   -1, {0},    "<identifier>"  },
+    [TOKEN_CONST] =         {   5,  "const",    "`const`"       },
+    [TOKEN_LET] =           {   3,  "let",      "`let`"         },
+    [TOKEN_FN] =            {   2,  "fn",       "`fn`"          },
+
+    [TOKEN_IDENTIFIER] =    {   -1, {0},        "<identifier>"  },
 };
 
 TokenKindInfo token_kind_info(TokenKind kind) {
@@ -35,25 +40,29 @@ TokenDelimInfo token_delim_info(TokenDelim delim) {
     return token_delim_infos[delim];
 }
 
-// `TokenStream` consists of an array of `size_t`, interpreted as 'token elements'.
-// The first `size_t` is an element contains the 'kind' of the token or token tree.
+// `TokenStream` consists of an array of `uint32_t`, interpreted as 'token elements'.
+// The first `uint32_t` is an element contains the 'kind' of the token or token tree.
 // Its bit 31 indicates if it's a single token (0) or token group (1). The 31
 // lowest bits either contain a `TokenKind` or a `TokenDelim`.
 //
-// If we have a single token, the next `size_t` contains its starting position in
+// If we have a single token, the next `uint32_t` contains its starting position in
 // the source code. If we have a token with no fixed size (e.g. identifiers,
-// numbers), the next size_t contains its end position.
+// numbers), the next uint32_t contains its end position.
 //
-// If we have a token group, the next two `size_t` respectively the starting position
-// in the source code of its opening and closing delimiter. The next `size_t` contains
-// the length of the contents, i.e. the number of `size_t` that the contents take up.
+// If we have a token group, the next two `uint32_t` respectively the starting position
+// in the source code of its opening and closing delimiter. The next `uint32_t` contains
+// the length of the contents, i.e. the number of `uint32_t` that the contents take up.
 
 TokenIt token_stream_it(TokenStream stream) {
-    size_t const* elements = (size_t const*)stream._elements;
+    uint32_t const* elements = (uint32_t const*)stream._elements;
     return (TokenIt) {
         ._cursor = elements,
         ._end = elements + stream._len,
     };
+}
+
+bool token_it_end(TokenIt it) {
+    return it._cursor >= it._end;
 }
 
 int token_it_get(TokenIt it, OUT(TokenTree) dst) {
@@ -61,12 +70,12 @@ int token_it_get(TokenIt it, OUT(TokenTree) dst) {
 }
 
 int token_it_next(TokenIt* it, OUT(TokenTree) dst) {
-    if (it->_cursor >= it->_end) {
+    if (token_it_end(*it)) {
         return -1;
     }
     
-    size_t const* cursor = (size_t const*)it->_cursor;
-    size_t kind = *(cursor++);
+    uint32_t const* cursor = (uint32_t const*)it->_cursor;
+    uint32_t kind = *(cursor++);
 
     TokenTree result;
 
@@ -74,10 +83,10 @@ int token_it_next(TokenIt* it, OUT(TokenTree) dst) {
         // token group
 
         TokenDelim delim = kind & ((1ul << 31) - 1);
-        size_t left_start = *(cursor++);
-        size_t right_start = *(cursor++);
-        size_t len = *(cursor++);
-        size_t const* end = cursor + len;
+        uint32_t left_start = *(cursor++);
+        uint32_t right_start = *(cursor++);
+        uint32_t len = *(cursor++);
+        uint32_t const* end = cursor + len;
 
         result = (TokenTree) {
             .kind = TOKEN_TREE_GROUP,
@@ -97,9 +106,9 @@ int token_it_next(TokenIt* it, OUT(TokenTree) dst) {
         // single token
 
         TokenKind token_kind = kind & ((1ul << 31) - 1);
-        size_t start = *(cursor++);
+        uint32_t start = *(cursor++);
         TokenKindInfo info = token_kind_info(token_kind);
-        size_t end;
+        uint32_t end;
         if (info.len == -1) {
             end = *(cursor++);
         } else {
@@ -122,6 +131,72 @@ int token_it_next(TokenIt* it, OUT(TokenTree) dst) {
     return 0;
 }
 
+int token_it_match_single(TokenIt* it, TokenKind kind, OUT(Token) dst) {
+    TokenIt it1 = *it;
+    TokenTree tree = {0};
+    if (
+        token_it_next(&it1, &tree)
+        || tree.kind != TOKEN_TREE_SINGLE
+        || tree.as.single.kind != kind
+    ) {
+        return -1;
+    }
+    *it = it1;
+    if (dst) {
+        *dst = tree.as.single;
+    }
+    return 0;
+}
+
+int token_it_match_group(TokenIt* it, TokenDelim delim, OUT(TokenGroup) dst) {
+    TokenIt it1 = *it;
+    TokenTree tree = {0};
+    if (
+        token_it_next(&it1, &tree)
+        || tree.kind != TOKEN_TREE_GROUP
+        || tree.as.group.delim != delim
+    ) {
+        return -1;
+    }
+    *it = it1;
+    if (dst) {
+        *dst = tree.as.group;
+    }
+    return 0;
+}
+
+int token_it_find_single(TokenIt* it, TokenKind kind, OUT(Token) dst) {
+    while (true) {
+        TokenTree tree;
+        if (token_it_next(it, &tree)) {
+            return -1;
+        }
+        if (tree.kind != TOKEN_TREE_SINGLE) {
+            continue;
+        }
+        if (dst) {
+            *dst = tree.as.single;
+        }
+        return 0;
+    }
+}
+
+int token_it_find_group(TokenIt* it, TokenDelim delim, OUT(TokenGroup) dst) {
+    while (true) {
+        TokenTree tree;
+        if (token_it_next(it, &tree)) {
+            return -1;
+        }
+        if (tree.kind != TOKEN_TREE_GROUP) {
+            continue;
+        }
+        if (dst) {
+            *dst = tree.as.group;
+        }
+        return 0;
+    }
+}
+
 TokenIt token_group_contents(TokenGroup group) {
     return group._contents;
 }
@@ -135,9 +210,9 @@ TokenStream token_stream_new(void) {
 }
 
 void token_stream_push(TokenStream* stream, Token token) {
-    size_t len = stream->_len;
-    size_t* elements = stream->_elements;
-    reserve(ERASE2(&elements), &stream->_capacity, len + 3, sizeof(size_t));
+    uint32_t len = stream->_len;
+    uint32_t* elements = stream->_elements;
+    reserve(ERASE2(&elements), &stream->_capacity, len + 3, sizeof(uint32_t));
 
     elements[len++] = token.kind;
     elements[len++] = token.range.start;
@@ -154,10 +229,10 @@ TokenStreamGroupBuilder token_stream_open_group(
     TokenDelim delim,
     size_t start_pos
 ) {
-    size_t* elements = stream->_elements;
-    size_t len = stream->_len;
-    size_t opening = len;
-    reserve(ERASE2(&elements), &stream->_capacity, len + 4, sizeof(size_t));
+    uint32_t* elements = stream->_elements;
+    uint32_t len = stream->_len;
+    uint32_t opening = len;
+    reserve(ERASE2(&elements), &stream->_capacity, len + 4, sizeof(uint32_t));
 
     elements[len++] = delim | (1ul << 31);
     elements[len++] = start_pos;
@@ -177,12 +252,38 @@ void token_stream_close_group(
     OWNED(TokenStreamGroupBuilder) builder,
     size_t start_pos
 ) {
-    size_t* elements = builder->_stream->_elements;
-    size_t start = builder->_opening;
+    uint32_t* elements = builder->_stream->_elements;
+    uint32_t start = builder->_opening;
     elements[start + 2] = start_pos;
     elements[start + 3] = builder->_stream->_len - (start + 4);
 }
 
 void token_stream_free(OWNED(TokenStream) stream) {
     free(stream->_elements);
+}
+
+void debug_tokens(TokenIt it) {
+    TokenTree token_tree;
+    while (!token_it_next(&it, &token_tree)) {
+        switch (token_tree.kind) {
+            case TOKEN_TREE_SINGLE:
+                debug_begin("token");
+                debug_attr_int("kind", token_tree.as.single.kind);
+                debug_attr_range("range", token_tree.as.single.range);
+                debug_end();
+                break;
+            case TOKEN_TREE_GROUP:
+                debug_begin("group");
+                debug_attr_int("delim", token_tree.as.group.delim);
+                debug_attr_range("range", (Range) {
+                    token_tree.as.group.left.start,
+                    token_tree.as.group.right.end,
+                });
+                debug_attr_begin_list("contents");
+                debug_tokens(token_group_contents(token_tree.as.group));
+                debug_attr_end_list();
+                debug_end();
+                break;
+        }
+    }
 }
