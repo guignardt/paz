@@ -43,7 +43,7 @@ void* ast_storage_alloc(AstStorage* storage, size_t size) {
     *storage = (AstStorage) {
         ._top = arena,
         ._top_capacity = cap,
-        ._top_offset = sizeof(header),
+        ._top_offset = sizeof(header) + size,
     };
     return arena + sizeof(header);
 }
