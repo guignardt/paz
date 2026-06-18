@@ -1,15 +1,32 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
+typedef enum Precedence {
+    PRECEDENCE_ATOM,
+    PRECEDENCE_CALL,
+    PRECEDENCE_NONE,
+} Precedence;
+
+Precedence binary_operator_precedence[] = {
+    [AST_OPERATOR_CALL] = PRECEDENCE_CALL,
+};
+
+static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpression) dst);
 static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst);
 // only returns `PARSE_OK` or `PARSE_ILL`
-static ParseStatus parse_expression_try_continue(Parser p, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed);
+static ParseStatus parse_expression_try_continue(
+    Parser p, Precedence prec, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed
+);
 
 static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression) dst);
 
 ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
+    return parse_expression_prec(p, PRECEDENCE_NONE, dst);
+}
+
+static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpression) dst) {
     ParseStatus status;
     AstExpression expr;
     
@@ -23,6 +40,10 @@ ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
         }
     }
 
+    if (prec == PRECEDENCE_ATOM) {
+        goto parse_expression_end;
+    }
+
     // status is now `PARSE_OK`
 
     // this loop is weird for now since `parse_expression_try_continue` also
@@ -30,7 +51,7 @@ ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
     // we'll need it once we introduct precedence tho.
     while (true) {
         bool parsed;
-        status = parse_expression_try_continue(p, expr, &expr, &parsed);
+        status = parse_expression_try_continue(p, prec, expr, &expr, &parsed);
         if (!parsed) {
             goto parse_expression_end;
         }
@@ -74,7 +95,9 @@ static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst) {
     }
 }
 
-static ParseStatus parse_expression_try_continue(Parser p, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed) {
+static ParseStatus parse_expression_try_continue(
+    Parser p, Precedence prec, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed
+) {
     ParseStatus status;
 
     TokenTree head;
@@ -82,20 +105,25 @@ static ParseStatus parse_expression_try_continue(Parser p, AstExpression lhs, OU
         goto parse_expression_try_continue_no_parse;
     }
 
-    AstExpression rhs;
     AstBinaryOperator operator;
     switch (head.kind) {
         case TOKEN_TREE_GROUP:
             switch (head.as.group.delim) {
                 case TOKEN_DELIM_PAREN:
                     operator = AST_OPERATOR_CALL;
-                    status = parse_expression(p, &rhs);
                     break;
             }
             break;
         default:
             goto parse_expression_try_continue_no_parse;
     }
+
+    Precedence operator_prec = binary_operator_precedence[operator];
+    if (operator_prec >= prec) {
+        goto parse_expression_try_continue_no_parse;
+    }
+    AstExpression rhs;
+    status = parse_expression_prec(p, operator_prec, &rhs);
 
     AstExpression* p_lhs = ast_storage_alloc(p.storage, sizeof(AstExpression));
     *p_lhs = lhs;
