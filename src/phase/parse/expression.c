@@ -1,6 +1,12 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
+extern AstPattern* glob_p_pattern;
+
+static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
+// assumes the head `fn` token has already been consumed
+static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression) dst);
+
 ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
     TokenTree head;
     if (token_it_next(p.tokens, &head)) {
@@ -22,29 +28,114 @@ ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
             }
         case TOKEN_TREE_SINGLE:
             switch (head.as.single.kind) {
-                case TOKEN_IDENTIFIER: break;
-                default: return PARSE_ERROR;
+                case TOKEN_IDENTIFIER:
+                    return ast_ref_new(p.text, head.as.single.range, dst);
+                case TOKEN_FN:
+                    return parse_function_continue(p, head.as.single.range, dst);
+                default:
+                    return PARSE_ERROR;
             }
-            break;
     }
+}
 
-    // head is identifier
-
-    Range range = head.as.single.range;
+static ParseStatus ast_ref_new(char const* text, Range range, OUT(AstExpression) dst) {
     AstIdentifier identifier = {
         .range = range,
         .string = {
-            .data = p.text + range.start,
+            .data = text + range.start,
             .len = range.end - range.start
         }
     };
-    *dst = (AstExpression) {
-        .next = NULL,
-        .range = range,
-        .kind = AST_EXPRESSION_REF,
-        .as.ref = (AstRef) {
-            .identifier = identifier,
-        },
-    };
+    if (dst) {
+        *dst = (AstExpression) {
+            .next = NULL,
+            .range = range,
+            .kind = AST_EXPRESSION_REF,
+            .as.ref = (AstRef) {
+                .identifier = identifier,
+            },
+        };
+    }
     return PARSE_OK;
+}
+
+static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpression) dst) {
+    AstFunction result = { .input = NULL, .output_type = NULL, .output = NULL };
+    ParseStatus status; // must be set before gotoing to parse_function_continue_end
+
+    {
+        AstPattern input;
+        ParseStatus pattern_status = parse_pattern(p, &input);
+        if (parse_status_returned(pattern_status)) {
+            result.input = ast_storage_alloc(p.storage, sizeof(AstPattern));
+            *result.input = input;
+            range.end = input.range.end;
+        }
+        if (parse_status_ill(pattern_status)) {
+            status = PARSE_ILL;
+            goto parse_function_continue_end;
+        }
+    }
+
+    {
+        Token arrow;
+        if (token_it_match_single(p.tokens, TOKEN_ARROW, &arrow)) {
+            unexpected_token();
+            status = PARSE_ILL;
+            goto parse_function_continue_end;
+        }
+        range.end = arrow.range.end;
+    }
+    
+    {
+        AstTypeName output_type;
+        ParseStatus output_type_status = parse_type_name(p, &output_type);
+        if (parse_status_returned(output_type_status)) {
+            result.output_type = ast_storage_alloc(p.storage, sizeof(AstTypeName));
+            *result.output_type = output_type;
+            range.end = output_type.range.end;
+        }
+        if (parse_status_ill(output_type_status)) {
+            status = PARSE_ILL;
+            goto parse_function_continue_end;
+        }
+    }
+
+    {
+        Token double_arrow;
+        if (token_it_match_single(p.tokens, TOKEN_DOUBLE_ARROW, &double_arrow)) {
+            unexpected_token();
+            status = PARSE_ILL;
+            goto parse_function_continue_end;
+        }
+        range.end = double_arrow.range.end;
+    }
+
+    {
+        AstExpression output;
+        ParseStatus output_status = parse_expression(p, &output);
+        if (parse_status_returned(output_status)) {
+            result.output = ast_storage_alloc(p.storage, sizeof(AstExpression));
+            *result.output = output;
+            range.end = output.range.end;
+        }
+        if (parse_status_ill(output_status)) {
+            status = PARSE_ILL;
+            goto parse_function_continue_end;
+        }
+    }
+
+    status = PARSE_OK;
+    goto parse_function_continue_end;
+
+parse_function_continue_end:
+    if (dst) {
+        *dst = (AstExpression) {
+            .next = NULL,
+            .range = range,
+            .kind = AST_EXPRESSION_FUNCTION,
+            .as.function = result,
+        };
+    }
+    return status;
 }

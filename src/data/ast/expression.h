@@ -1,10 +1,17 @@
 #pragma once
 
 #include "data/ast/identifier.h"
+#include "data/ast/pattern.h"
 
 typedef struct AstRef {
     AstIdentifier identifier;
 } AstRef;
+
+typedef struct AstFunction {
+    AstPattern* input;
+    AstTypeName* output_type; // optional
+    struct AstExpression* output;
+} AstFunction;
 
 typedef enum AstBinaryOperator {
     AST_OPERATOR_ADD,
@@ -23,7 +30,7 @@ typedef struct AstBinaryOperation {
 typedef enum AstExpressionKind {
     AST_EXPRESSION_REF,
     // AST_EXPRESSION_BINARY_OPERATION,
-    // AST_EXPRESSION_FUNCTION,
+    AST_EXPRESSION_FUNCTION,
 } AstExpressionKind;
 
 typedef struct AstExpression {
@@ -34,6 +41,7 @@ typedef struct AstExpression {
     AstExpressionKind kind;
     union {
         AstRef ref;
+        AstFunction function;
     } as;
 } AstExpression;
 

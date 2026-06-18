@@ -1,6 +1,11 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
+#include "diagnostic/report.h"
+
+// FIXME: remove (used for debugging)
+AstPattern* glob_p_pattern = NULL;
+
 ParseStatus parse_binding(Parser p, OUT(AstBinding) dst) {
     TokenTree head;
     if (
@@ -23,44 +28,51 @@ ParseStatus parse_binding(Parser p, OUT(AstBinding) dst) {
     AstExpression* p_value = NULL;
     ParseStatus status; // must be set before gotoing to parse_binding_end
 
-    AstPattern pattern;
-    ParseStatus pattern_status = parse_pattern(p, &pattern);
-    if (parse_status_returned(pattern_status)) {
-        p_pattern = ast_storage_alloc(p.storage, sizeof(AstPattern));
-        *p_pattern = pattern;
-        range.end = pattern.range.end;
-    }
-    switch (pattern_status) {
-        case PARSE_OK:
-            break;
-        case PARSE_ILL:
-        case PARSE_ERROR:
-            status = PARSE_ILL;
-            goto parse_binding_end;
+    {
+        AstPattern pattern;
+        ParseStatus pattern_status = parse_pattern(p, &pattern);
+        if (parse_status_returned(pattern_status)) {
+            p_pattern = ast_storage_alloc(p.storage, sizeof(AstPattern));
+            *p_pattern = pattern;
+            glob_p_pattern = p_pattern;
+            range.end = pattern.range.end;
+        }
+        switch (pattern_status) {
+            case PARSE_OK:
+                break;
+            case PARSE_ILL:
+            case PARSE_ERROR:
+                status = PARSE_ILL;
+                goto parse_binding_end;
+        }
     }
 
-    Token equal;
-    if (token_it_match_single(p.tokens, TOKEN_EQUAL, &equal)) {
-        unexpected_token();
-        status = PARSE_ILL;
-        goto parse_binding_end;
-    }
-    range.end = equal.range.end;
-
-    AstExpression value;
-    ParseStatus value_status = parse_expression(p, &value);
-    if (parse_status_returned(value_status)) {
-        p_value = ast_storage_alloc(p.storage, sizeof(AstExpression));
-        *p_value = value;
-        range.end = value.range.end;
-    }
-    switch (value_status) {
-        case PARSE_OK:
-            break;
-        case PARSE_ILL:
-        case PARSE_ERROR:
+    {
+        Token equal;
+        if (token_it_match_single(p.tokens, TOKEN_EQUAL, &equal)) {
+            unexpected_token();
             status = PARSE_ILL;
             goto parse_binding_end;
+        }
+        range.end = equal.range.end;
+    }
+
+    {
+        AstExpression value;
+        ParseStatus value_status = parse_expression(p, &value);
+        if (parse_status_returned(value_status)) {
+            p_value = ast_storage_alloc(p.storage, sizeof(AstExpression));
+            *p_value = value;
+            range.end = value.range.end;
+        }
+        switch (value_status) {
+            case PARSE_OK:
+                break;
+            case PARSE_ILL:
+            case PARSE_ERROR:
+                status = PARSE_ILL;
+                goto parse_binding_end;
+        }
     }
 
     status = PARSE_OK;

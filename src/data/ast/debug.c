@@ -38,6 +38,26 @@ void debug_ast_expression(AstExpression v) {
             debug_attr_string("identifier", v.as.ref.identifier.string);
             debug_end();
             break;
+
+        case AST_EXPRESSION_FUNCTION:
+            debug_begin("function");
+            if (v.as.function.input) {
+                debug_attr_begin("input");
+                debug_ast_pattern(*v.as.function.input);
+                debug_attr_end();
+            }
+            if (v.as.function.output_type) {
+                debug_attr_begin("output type");
+                debug_ast_type_name(*v.as.function.output_type);
+                debug_attr_end();
+            }
+            if (v.as.function.output) {
+                debug_attr_begin("output");
+                debug_ast_expression(*v.as.function.output);
+                debug_attr_end();
+            }
+            debug_end();
+            break;
     }
 }
 
