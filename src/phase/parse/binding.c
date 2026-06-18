@@ -3,9 +3,6 @@
 
 #include "diagnostic/report.h"
 
-// FIXME: remove (used for debugging)
-AstPattern* glob_p_pattern = NULL;
-
 ParseStatus parse_binding(Parser p, OUT(AstBinding) dst) {
     TokenTree head;
     if (
@@ -34,7 +31,6 @@ ParseStatus parse_binding(Parser p, OUT(AstBinding) dst) {
         if (parse_status_returned(pattern_status)) {
             p_pattern = ast_storage_alloc(p.storage, sizeof(AstPattern));
             *p_pattern = pattern;
-            glob_p_pattern = p_pattern;
             range.end = pattern.range.end;
         }
         switch (pattern_status) {

@@ -1,8 +1,6 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
-extern AstPattern* glob_p_pattern;
-
 static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst);
 // only returns `PARSE_OK` or `PARSE_ILL`
 static ParseStatus parse_expression_try_continue(Parser p, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed);

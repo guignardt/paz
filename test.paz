@@ -1,4 +1,1 @@
-;
-const main = fn (a: Int) -> Int => foo(a);;
-;
-let foo = fn (x: Int) -> Float => y;
+const main = fn (a: Int) -> Int => foo(a)(b);
