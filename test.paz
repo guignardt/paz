@@ -1,1 +1,5 @@
-const main = fn (a: Int) -> Int => c + (foo(a) + -42) + 2;
+const main = fn (a: Int) -> Int => (
+    let tmp = foo(a);
+    const foo = 10; ;
+    tmp + 2
+);

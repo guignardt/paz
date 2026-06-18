@@ -34,10 +34,12 @@ static ParseStatus parse_expression_try_continue(
     Parser p, Precedence prec, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed
 );
 
-static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
+// takes in the contents of the parenthesized expression
+static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpression) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression) dst);
 static ParseStatus parse_int(char const* text, Token token, OUT(AstExpression) dst);
+static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
 
 ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
     return parse_expression_prec(p, PRECEDENCE_NONE, dst);
@@ -95,7 +97,11 @@ static ParseStatus parse_expression_atom(Parser p, OUT(AstExpression) dst) {
                         .tokens = &contents,
                         .storage = p.storage,
                     };
-                    return parse_expression(p2, dst);
+                    return parse_expression_paren(
+                        p2,
+                        (Range){ head.as.group.left.start, head.as.group.right.end },
+                        dst
+                    );
             }
         case TOKEN_TREE_SINGLE:
             switch (head.as.single.kind) {
@@ -208,6 +214,78 @@ static ParseStatus ast_ref_new(char const* text, Range range, OUT(AstExpression)
                 .identifier = identifier,
             },
         };
+    }
+    return PARSE_OK;
+}
+
+static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpression) dst) {
+    AstBinding* bindings = NULL;
+    bool has_tail = false;
+    AstExpression tail;
+    
+    // parse bindings
+    TokenTree head;
+    AstBinding** write_bindings = &bindings;
+    while (!token_it_get(*p.tokens, &head)) {
+        if (head.kind != TOKEN_TREE_SINGLE) {
+            break;
+        }
+
+        if (head.as.single.kind == TOKEN_SEMICOLON) {
+            token_it_next(p.tokens, NULL);
+            continue;
+        }
+
+        if (head.as.single.kind != TOKEN_CONST && head.as.single.kind != TOKEN_LET) {
+            break;
+        }
+        AstBinding binding;
+        ParseStatus status = parse_binding(p, &binding);
+        if (parse_status_returned(status)) {
+            AstBinding* ptr = ast_storage_alloc(p.storage, sizeof(AstBinding));
+            *ptr = binding;
+            *write_bindings = ptr;
+            write_bindings = &ptr->next;
+        }
+
+        if (token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {
+            // if status is ok, we have already reported an error when
+            // parsing the binding
+            if (status == PARSE_OK) {
+                unexpected_token();
+            }
+            token_it_find_single(p.tokens, TOKEN_SEMICOLON, NULL);
+        }
+    }
+
+    if (!token_it_end(*p.tokens)) {
+        ParseStatus status = parse_expression(p, &tail);
+        has_tail = parse_status_returned(status);
+        if (status == PARSE_OK && !token_it_end(*p.tokens)) {
+            unexpected_token();
+        }
+    }
+
+    if (dst) {
+        if (!bindings) {
+            *dst = tail;
+        } else {
+            AstExpression* p_tail = NULL;
+            if (has_tail) {
+                p_tail = ast_storage_alloc(p.storage, sizeof(AstExpression));
+                *p_tail = tail;
+            }
+
+            *dst = (AstExpression) {
+                .next = NULL,
+                .range = range,
+                .kind = AST_EXPRESSION_BLOCK,
+                .as.block = (AstBlock) {
+                    .bindings = bindings,
+                    .tail = p_tail,
+                },
+            };
+        }
     }
     return PARSE_OK;
 }

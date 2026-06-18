@@ -3,6 +3,11 @@
 #include "data/ast/identifier.h"
 #include "data/ast/pattern.h"
 
+typedef struct AstBlock {
+    struct AstBinding* bindings; // list
+    struct AstExpression* tail; // optional
+} AstBlock;
+
 typedef struct AstRef {
     AstIdentifier identifier;
 } AstRef;
@@ -26,6 +31,7 @@ typedef struct AstBinaryOperation {
 } AstBinaryOperation;
 
 typedef enum AstExpressionKind {
+    AST_EXPRESSION_BLOCK,
     AST_EXPRESSION_REF,
     AST_EXPRESSION_FUNCTION,
     AST_EXPRESSION_BINARY_OPERATION,
@@ -39,6 +45,7 @@ typedef struct AstExpression {
 
     AstExpressionKind kind;
     union {
+        AstBlock block;
         AstRef ref;
         AstFunction function;
         AstBinaryOperation binary_operation;

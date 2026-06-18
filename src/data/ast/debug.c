@@ -33,6 +33,21 @@ void debug_ast_binding(AstBinding v) {
 
 void debug_ast_expression(AstExpression v) {
     switch (v.kind) {
+        case AST_EXPRESSION_BLOCK:
+            debug_begin("block");
+            debug_attr_begin_list("bindings");
+            for (AstBinding const* p = v.as.block.bindings; p; p = p->next) {
+                debug_ast_binding(*p);
+            }
+            debug_attr_end_list();
+            if (v.as.block.tail) {
+                debug_attr_begin("tail");
+                debug_ast_expression(*v.as.block.tail);
+                debug_attr_end();
+            }
+            debug_end();
+            break;
+
         case AST_EXPRESSION_REF:
             debug_begin("ref");
             debug_attr_string("identifier", v.as.ref.identifier.string);
