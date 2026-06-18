@@ -15,6 +15,8 @@ typedef struct AstFunction {
 
 typedef enum AstBinaryOperator {
     AST_OPERATOR_CALL,
+
+    AST_OPERATOR_ADD,
 } AstBinaryOperator;
 
 typedef struct AstBinaryOperation {

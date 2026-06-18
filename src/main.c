@@ -11,6 +11,11 @@
 #include "phase/tokenize.h"
 #include "phase/parse.h"
 
+#define DEBUG_SOURCE_CODE   0
+#define DEBUG_LINE_INDICES  0
+#define DEBUG_TOKENS        0
+#define DEBUG_AST           1
+
 int main(int argc, char const** argv) {
     set_reporter(default_reporter());
 
@@ -38,19 +43,26 @@ int main(int argc, char const** argv) {
         fclose(input);
     }
 
+#if DEBUG_SOURCE_CODE
     eprintf("=== source code ===\n");
     eprintf("%s\n", source.text);
+#endif
+
+#if DEBUG_LINE_INDICES
     eprintf("=== line indices ===\n");
     for (size_t i = 0; i < source.num_lines; i++) {
         eprintf("%zu ", source.line_indices[i]);
     }
     eprintf("\n");
+#endif
 
     TokenStream tokens;
     tokenize(source.text, &tokens);
-    
+
+#if DEBUG_TOKENS
     eprintf("\n=== tokens ===\n");
     debug_tokens(token_stream_it(tokens));
+#endif
 
     if (report_count(SEVERITY_ERROR) > 0) {
         goto tokenize_error_end;
@@ -66,8 +78,10 @@ int main(int argc, char const** argv) {
     AstProgram program;
     parse_program(parser, &program);
 
+#if DEBUG_AST
     eprintf("\n=== AST ===\n");
     debug_ast_program(program);
+#endif
 
     if (report_count(SEVERITY_ERROR) > 0) {
         goto parse_error_end;
