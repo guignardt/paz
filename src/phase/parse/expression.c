@@ -1,6 +1,8 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
+#include "diagnostic/report.h"
+
 typedef enum Precedence {
     PRECEDENCE_NONE,
     PRECEDENCE_ADD,
@@ -26,19 +28,16 @@ TokenOperatorEntry token_operators[] = {
 };
 
 static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpression) dst);
-static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst);
+static ParseStatus parse_expression_atom(Parser p, OUT(AstExpression) dst);
 // only returns `PARSE_OK` or `PARSE_ILL`
 static ParseStatus parse_expression_try_continue(
     Parser p, Precedence prec, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed
 );
 
-// *infix set to true if we have an infix operator, to false if we have a
-// prefix operator
-static int token_operator(TokenKind kind, int* dst, bool* infix);
-
 static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression) dst);
+static ParseStatus parse_int(char const* text, Token token, OUT(AstExpression) dst);
 
 ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
     return parse_expression_prec(p, PRECEDENCE_NONE, dst);
@@ -49,7 +48,7 @@ static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpre
     AstExpression expr;
     
     {
-        status = parse_expression_head(p, &expr);
+        status = parse_expression_atom(p, &expr);
         if (status != PARSE_OK) {
             if (status == PARSE_ERROR) {
                 return PARSE_ERROR;
@@ -79,7 +78,7 @@ parse_expression_end:
     return status;
 }
 
-static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst) {
+static ParseStatus parse_expression_atom(Parser p, OUT(AstExpression) dst) {
     TokenTree head;
     if (token_it_next(p.tokens, &head)) {
         unexpected_token();
@@ -104,6 +103,8 @@ static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst) {
                     return ast_ref_new(p.text, head.as.single.range, dst);
                 case TOKEN_FN:
                     return parse_function_continue(p, head.as.single.range, dst);
+                case TOKEN_INT:
+                    return parse_int(p.text, head.as.single, dst);
                 default:
                     return PARSE_ERROR;
             }
@@ -290,4 +291,42 @@ parse_function_continue_end:
         };
     }
     return status;
+}
+
+static ParseStatus parse_int(char const* text, Token token, OUT(AstExpression) dst) {
+    size_t pos = token.range.start;
+
+    int sign;
+    switch (text[pos]) {
+        case '+': sign = 1; pos++; break;
+        case '-': sign = -1; pos++; break;
+        default: sign = 1; break;
+    }
+
+    int64_t value = 0;
+    for (; pos < token.range.end; pos++) {
+        // must be a digit
+        char c = text[pos];
+        int64_t digit = sign * (c - '0');
+        if (
+            __builtin_mul_overflow(value, 10, &value)
+            || __builtin_add_overflow(value, digit, &value)
+        ) {
+            report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+            report_message("integer literal overflowed");
+            report_end();
+            value = 0;
+            break;
+        }
+    }
+
+    if (dst) {
+        *dst = (AstExpression) {
+            .next = NULL,
+            .range = token.range,
+            .kind = AST_EXPRESSION_LITERAL_INT,
+            .as.literal_int = value,
+        };
+    }
+    return PARSE_OK;
 }

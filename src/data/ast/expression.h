@@ -29,6 +29,7 @@ typedef enum AstExpressionKind {
     AST_EXPRESSION_REF,
     AST_EXPRESSION_FUNCTION,
     AST_EXPRESSION_BINARY_OPERATION,
+    AST_EXPRESSION_LITERAL_INT,
 } AstExpressionKind;
 
 typedef struct AstExpression {
@@ -41,6 +42,7 @@ typedef struct AstExpression {
         AstRef ref;
         AstFunction function;
         AstBinaryOperation binary_operation;
+        int64_t literal_int;
     } as;
 } AstExpression;
 

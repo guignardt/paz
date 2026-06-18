@@ -23,7 +23,7 @@ void debug_attr_end() {
 }
 
 void debug_attr_int(char const* name, long long v) {
-    eprintf("%*s%s: %llu\n", indent, "", name, v);
+    eprintf("%*s%s: %lld\n", indent, "", name, v);
 }
 
 void debug_attr_range(char const* name, Range range) {

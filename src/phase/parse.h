@@ -22,6 +22,10 @@ typedef struct Parser {
     AstStorage* storage;
 } Parser;
 
+// valid tokens must be passed to parsing functions: for example, the text of
+// a `TOKEN_INT` must be of the correct form (an optional sign followed by
+// decimal digits).
+
 ParseStatus parse_program(Parser parser, OUT(AstProgram) dst);
 ParseStatus parse_module(Parser parser, OUT(AstModule) dst);
 ParseStatus parse_binding(Parser parser, OUT(AstBinding) dst);

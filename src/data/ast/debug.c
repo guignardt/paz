@@ -74,6 +74,12 @@ void debug_ast_expression(AstExpression v) {
             }
             debug_end();
             break;
+
+        case AST_EXPRESSION_LITERAL_INT:
+            debug_begin("int literal");
+            debug_attr_int("value", v.as.literal_int);
+            debug_end();
+            break;
     }
 }
 
