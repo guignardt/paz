@@ -13,8 +13,8 @@
 
 #define DEBUG_SOURCE_CODE   0
 #define DEBUG_LINE_INDICES  0
-#define DEBUG_TOKENS        0
-#define DEBUG_AST           1
+#define DEBUG_TOKENS        1
+#define DEBUG_AST           0
 
 int main(int argc, char const** argv) {
     set_reporter(default_reporter());

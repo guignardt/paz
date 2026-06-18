@@ -37,6 +37,8 @@ typedef enum TokenKind {
     TOKEN_FN,
 
     TOKEN_IDENTIFIER,
+
+    TOKEN_INT,
 } TokenKind;
 
 #define TOKEN_PUNCT_MIN (TOKEN_COMMA)

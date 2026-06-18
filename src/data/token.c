@@ -26,6 +26,8 @@ static TokenKindInfo token_kind_infos[] = {
     [TOKEN_FN] =            {   2,  "fn",       "`fn`"          },
 
     [TOKEN_IDENTIFIER] =    {   -1, {0},        "<identifier>"  },
+
+    [TOKEN_INT] =           {   -1, {0},        "<integer>"     },
 };
 
 TokenKindInfo token_kind_info(TokenKind kind) {
