@@ -14,23 +14,19 @@ typedef struct AstFunction {
 } AstFunction;
 
 typedef enum AstBinaryOperator {
-    AST_OPERATOR_ADD,
-    AST_OPERATOR_SUB,
-    AST_OPERATOR_MUL,
-    AST_OPERATOR_DIV,
-    AST_OPERATOR_REM,
+    AST_OPERATOR_CALL,
 } AstBinaryOperator;
 
 typedef struct AstBinaryOperation {
     AstBinaryOperator op;
-    struct AstExpression* first;
-    struct AstExpression* second;
+    struct AstExpression* lhs;
+    struct AstExpression* rhs;
 } AstBinaryOperation;
 
 typedef enum AstExpressionKind {
     AST_EXPRESSION_REF,
-    // AST_EXPRESSION_BINARY_OPERATION,
     AST_EXPRESSION_FUNCTION,
+    AST_EXPRESSION_BINARY_OPERATION,
 } AstExpressionKind;
 
 typedef struct AstExpression {
@@ -42,6 +38,7 @@ typedef struct AstExpression {
     union {
         AstRef ref;
         AstFunction function;
+        AstBinaryOperation binary_operation;
     } as;
 } AstExpression;
 

@@ -3,11 +3,49 @@
 
 extern AstPattern* glob_p_pattern;
 
+static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst);
+// only returns `PARSE_OK` or `PARSE_ILL`
+static ParseStatus parse_expression_try_continue(Parser p, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed);
+
 static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression) dst);
 
 ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
+    ParseStatus status;
+    AstExpression expr;
+    
+    {
+        status = parse_expression_head(p, &expr);
+        if (status != PARSE_OK) {
+            if (status == PARSE_ERROR) {
+                return PARSE_ERROR;
+            }
+            goto parse_expression_end;
+        }
+    }
+
+    // status is now `PARSE_OK`
+
+    // this loop is weird for now since `parse_expression_try_continue` also
+    // calls `parse_expression`.
+    // we'll need it once we introduct precedence tho.
+    while (true) {
+        bool parsed;
+        status = parse_expression_try_continue(p, expr, &expr, &parsed);
+        if (!parsed) {
+            goto parse_expression_end;
+        }
+    }
+
+parse_expression_end:
+    if (dst) {
+        *dst = expr;
+    }
+    return status;
+}
+
+static ParseStatus parse_expression_head(Parser p, OUT(AstExpression) dst) {
     TokenTree head;
     if (token_it_next(p.tokens, &head)) {
         unexpected_token();
@@ -36,6 +74,62 @@ ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
                     return PARSE_ERROR;
             }
     }
+}
+
+static ParseStatus parse_expression_try_continue(Parser p, AstExpression lhs, OUT(AstExpression) dst, OUT(bool) parsed) {
+    ParseStatus status;
+
+    TokenTree head;
+    if (token_it_get(*p.tokens, &head)) {
+        goto parse_expression_try_continue_no_parse;
+    }
+
+    AstExpression rhs;
+    AstBinaryOperator operator;
+    switch (head.kind) {
+        case TOKEN_TREE_GROUP:
+            switch (head.as.group.delim) {
+                case TOKEN_DELIM_PAREN:
+                    operator = AST_OPERATOR_CALL;
+                    status = parse_expression(p, &rhs);
+                    break;
+            }
+            break;
+        default:
+            goto parse_expression_try_continue_no_parse;
+    }
+
+    AstExpression* p_lhs = ast_storage_alloc(p.storage, sizeof(AstExpression));
+    *p_lhs = lhs;
+    AstExpression* p_rhs;
+    if (status == PARSE_ERROR) {
+        status = PARSE_ILL;
+        p_rhs = NULL;
+    } else {
+        p_rhs = ast_storage_alloc(p.storage, sizeof(AstExpression));
+        *p_rhs = rhs;
+    }
+
+    AstExpression result = {
+        .next = NULL,
+        .range = (Range) { lhs.range.start, rhs.range.end },
+        .kind = AST_EXPRESSION_BINARY_OPERATION,
+        .as.binary_operation = (AstBinaryOperation) {
+            .op = AST_OPERATOR_CALL,
+            .lhs = p_lhs,
+            .rhs = p_rhs,
+        },
+    };
+    if (dst) {
+        *dst = result;
+    }
+
+    *parsed = true;
+    return status;
+
+parse_expression_try_continue_no_parse:
+    *parsed = false;
+    return PARSE_OK;
 }
 
 static ParseStatus ast_ref_new(char const* text, Range range, OUT(AstExpression) dst) {

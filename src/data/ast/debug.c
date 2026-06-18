@@ -58,6 +58,22 @@ void debug_ast_expression(AstExpression v) {
             }
             debug_end();
             break;
+
+        case AST_EXPRESSION_BINARY_OPERATION:
+            debug_begin("binary operation");
+            debug_attr_int("operator", v.as.binary_operation.op);
+            if (v.as.binary_operation.lhs) {
+                debug_attr_begin("lhs");
+                debug_ast_expression(*v.as.binary_operation.lhs);
+                debug_attr_end();
+            }
+            if (v.as.binary_operation.rhs) {
+                debug_attr_begin("rhs");
+                debug_ast_expression(*v.as.binary_operation.rhs);
+                debug_attr_end();
+            }
+            debug_end();
+            break;
     }
 }
 
