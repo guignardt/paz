@@ -10,7 +10,12 @@ ParseStatus parse_program(Parser p, OUT(AstProgram) dst) {
 ParseStatus parse_module(Parser p, OUT(AstModule) dst) {
     AstModule module = {0};
     AstBinding** write_next = &module.bindings;
-    while (!token_it_end(*p.tokens)) {
+    while (true) {
+        while (!token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {}
+        if (token_it_end(*p.tokens)) {
+            break;
+        }
+
         AstBinding binding;
         switch (parse_binding(p, &binding)) {
             case PARSE_OK:
