@@ -1,6 +1,4 @@
-const main = fn (a: Int) => (
-    let tmp = foo(a);
-    const bar = 10; ;
-    let flow = break foo + 4;
-    tmp + 2
+const main = fn (a: Int) -> Int => (
+    let foo = a for fn i => break i;
+    foo
 );
