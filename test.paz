@@ -1,4 +1,4 @@
 const main = fn (a: Int) -> Int => (
     let foo = a - 2 * b;
-    foo % a
+    42 == foo % a
 );

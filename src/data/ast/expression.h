@@ -31,6 +31,13 @@ typedef struct AstUnaryOperation {
 typedef enum AstBinaryOperator {
     AST_OPERATOR_CALL,
 
+    AST_OPERATOR_EQ,
+    AST_OPERATOR_NE,
+    AST_OPERATOR_LE,
+    AST_OPERATOR_LT,
+    AST_OPERATOR_GE,
+    AST_OPERATOR_GT,
+
     AST_OPERATOR_ADD,
     AST_OPERATOR_SUB,
     AST_OPERATOR_MUL,
