@@ -6,6 +6,7 @@
 typedef enum Precedence {
     PRECEDENCE_NONE,
     PRECEDENCE_FLOW,
+    PRECEDENCE_CONDITIONAL,
     PRECEDENCE_FOR,
     PRECEDENCE_COMPARE,
     PRECEDENCE_ADD,
@@ -79,6 +80,8 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
 static ParseStatus ast_ref_new(char const* text, Range identifier, OUT(AstExpression) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression) dst);
+// assumes the head `if` token has already been consumed
+static ParseStatus parse_conditonal_continue(Parser p, Range if_range, OUT(AstExpression) dst);
 static ParseStatus parse_int(char const* text, Token token, OUT(AstExpression) dst);
 
 ParseStatus parse_expression(Parser p, OUT(AstExpression) dst) {
@@ -179,6 +182,8 @@ static ParseStatus parse_expression_primary(Parser p, OUT(AstExpression) dst) {
                     return ast_ref_new(p.text, head.as.single.range, dst);
                 case TOKEN_FN:
                     return parse_function_continue(p, head.as.single.range, dst);
+                case TOKEN_IF:
+                    return parse_conditonal_continue(p, head.as.single.range, dst);
                 case TOKEN_INT:
                     return parse_int(p.text, head.as.single, dst);
                 default:
@@ -430,6 +435,80 @@ parse_function_continue_end:
             .range = range,
             .kind = AST_EXPRESSION_FUNCTION,
             .as.function = result,
+        };
+    }
+    return status;
+}
+
+static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpression) dst) {
+    AstConditional result = { .condition = NULL, .if_true = NULL, .if_false = NULL };
+    ParseStatus status = PARSE_ILL;
+    
+    {
+        AstExpression condition;
+        ParseStatus condition_status = parse_expression(p, &condition);
+        if (parse_status_returned(condition_status)) {
+            result.condition = ast_storage_alloc(p.storage, sizeof(AstExpression));
+            *result.condition = condition;
+            range.end = condition.range.end;
+        }
+        if (parse_status_ill(condition_status)) {
+            goto parse_conditonal_continue_end;
+        }
+    }
+
+    {
+        Token then;
+        if (token_it_match_single(p.tokens, TOKEN_THEN, &then)) {
+            goto parse_conditonal_continue_end;
+        }
+        range.end = then.range.end;
+    }
+
+    {
+        AstExpression if_true;
+        ParseStatus if_true_status = parse_expression(p, &if_true);
+        if (parse_status_returned(if_true_status)) {
+            result.if_true = ast_storage_alloc(p.storage, sizeof(AstExpression));
+            *result.if_true = if_true;
+            range.end = if_true.range.end;
+        }
+        if (parse_status_ill(if_true_status)) {
+            goto parse_conditonal_continue_end;
+        }
+    }
+
+    {
+        Token else_;
+        if (token_it_match_single(p.tokens, TOKEN_ELSE, &else_)) {
+            goto parse_conditonal_continue_end;
+        }
+        range.end = else_.range.end;
+    }
+
+    {
+        AstExpression if_false;
+        ParseStatus if_false_status = parse_expression(p, &if_false);
+        if (parse_status_returned(if_false_status)) {
+            result.if_false = ast_storage_alloc(p.storage, sizeof(AstExpression));
+            *result.if_false = if_false;
+            range.end = if_false.range.end;
+        }
+        if (parse_status_ill(if_false_status)) {
+            goto parse_conditonal_continue_end;
+        }
+    }
+
+    status = PARSE_OK;
+    goto parse_conditonal_continue_end;
+
+parse_conditonal_continue_end:
+    if (dst) {
+        *dst = (AstExpression) {
+            .next = NULL,
+            .range = range,
+            .kind = AST_EXPRESSION_CONDITIONAL,
+            .as.conditional = result,
         };
     }
     return status;

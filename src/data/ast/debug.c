@@ -74,6 +74,26 @@ void debug_ast_expression(AstExpression v) {
             debug_end();
             break;
 
+        case AST_EXPRESSION_CONDITIONAL:
+            debug_begin("conditional");
+            if (v.as.conditional.condition) {
+                debug_attr_begin("condition");
+                debug_ast_expression(*v.as.conditional.condition);
+                debug_attr_end();
+            }
+            if (v.as.conditional.if_true) {
+                debug_attr_begin("if true");
+                debug_ast_expression(*v.as.conditional.if_true);
+                debug_attr_end();
+            }
+            if (v.as.conditional.if_false) {
+                debug_attr_begin("if false");
+                debug_ast_expression(*v.as.conditional.if_false);
+                debug_attr_end();
+            }
+            debug_end();
+            break;
+
         case AST_EXPRESSION_UNARY_OPERATION:
             debug_begin("unary operation");
             debug_attr_int("operator", v.as.unary_operation.operator);

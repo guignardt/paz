@@ -53,12 +53,19 @@ typedef struct AstBinaryOperation {
     struct AstExpression* rhs;
 } AstBinaryOperation;
 
+typedef struct AstConditional {
+    struct AstExpression* condition;
+    struct AstExpression* if_true;
+    struct AstExpression* if_false;
+} AstConditional;
+
 typedef enum AstExpressionKind {
     AST_EXPRESSION_BLOCK,
     AST_EXPRESSION_REF,
     AST_EXPRESSION_FUNCTION,
     AST_EXPRESSION_UNARY_OPERATION,
     AST_EXPRESSION_BINARY_OPERATION,
+    AST_EXPRESSION_CONDITIONAL,
     AST_EXPRESSION_LITERAL_INT,
 } AstExpressionKind;
 
@@ -74,6 +81,7 @@ typedef struct AstExpression {
         AstFunction function;
         AstUnaryOperation unary_operation;
         AstBinaryOperation binary_operation;
+        AstConditional conditional;
         int64_t literal_int;
     } as;
 } AstExpression;
