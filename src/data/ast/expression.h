@@ -53,19 +53,6 @@ typedef struct AstBinaryOperation {
     struct AstExpression* rhs;
 } AstBinaryOperation;
 
-typedef struct AstFor {
-    struct AstExpression* initial;
-    struct AstExpression* transition;
-} AstFor;
-
-typedef struct AstBreak {
-    struct AstExpression* value;
-} AstBreak;
-
-typedef struct AstContinue {
-    struct AstExpression* value;
-} AstContinue;
-
 typedef enum AstExpressionKind {
     AST_EXPRESSION_BLOCK,
     AST_EXPRESSION_REF,
