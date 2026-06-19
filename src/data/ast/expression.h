@@ -32,6 +32,10 @@ typedef enum AstBinaryOperator {
     AST_OPERATOR_CALL,
 
     AST_OPERATOR_ADD,
+    AST_OPERATOR_SUB,
+    AST_OPERATOR_MUL,
+    AST_OPERATOR_DIV,
+    AST_OPERATOR_REM,
 
     AST_OPERATOR_FOR,
 } AstBinaryOperator;

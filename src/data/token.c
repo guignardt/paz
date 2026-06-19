@@ -6,31 +6,40 @@
 #include "util/debug.h"
 
 static TokenKindInfo token_kind_infos[] = {
-    [TOKEN_COMMA] =         {   1,  ",",        "`,`"           },
-    [TOKEN_COLON] =         {   1,  ":",        "`:`"           },
-    [TOKEN_SEMICOLON] =     {   1,  ";",        "`;`"           },
-    [TOKEN_COLON_EQUAL] =   {   2,  ":=",       "`:=`"          },
-    [TOKEN_COLON_COLON] =   {   2,  "::",       "`::`"          },
-    [TOKEN_EQUAL] =         {   1,  "=",        "`=`"           },
-    [TOKEN_ARROW] =         {   2,  "->",       "`->`"          },
-    [TOKEN_DOUBLE_ARROW] =  {   2,  "=>",       "`=>`"          },
+    [TOKEN_COMMA] =             {   1,  ",",        "`,`"           },
+    [TOKEN_COLON] =             {   1,  ":",        "`:`"           },
+    [TOKEN_SEMICOLON] =         {   1,  ";",        "`;`"           },
+    [TOKEN_COLON_EQUAL] =       {   2,  ":=",       "`:=`"          },
+    [TOKEN_COLON_COLON] =       {   2,  "::",       "`::`"          },
+    [TOKEN_EQUAL] =             {   1,  "=",        "`=`"           },
+    [TOKEN_ARROW] =             {   2,  "->",       "`->`"          },
+    [TOKEN_DOUBLE_ARROW] =      {   2,  "=>",       "`=>`"          },
 
-    [TOKEN_PLUS] =          {   1,  "+",        "`+`"           },
-    [TOKEN_MINUS] =         {   1,  "-",        "`-`"           },
-    [TOKEN_STAR] =          {   1,  "*",        "`*`"           },
-    [TOKEN_SLASH] =         {   1,  "/",        "`/`"           },
-    [TOKEN_PERCENT] =       {   1,  "%",        "`%`"           },
+    [TOKEN_EQUAL_EQUAL] =       {   2,  "==",       "`==`"          },
+    [TOKEN_BANG_EQUAL] =        {   2,  "!=",       "`!=`"          },
+    [TOKEN_LESS] =              {   1,  "<",        "`<`"           },
+    [TOKEN_LESS_EQUAL] =        {   2,  "<=",       "`<=`"          },
+    [TOKEN_GREATER] =           {   1,  ">",        "`>`"           },
+    [TOKEN_GREATER_EQUAL] =     {   2,  ">=",       "`>=`"          },
 
-    [TOKEN_CONST] =         {   5,  "const",    "`const`"       },
-    [TOKEN_LET] =           {   3,  "let",      "`let`"         },
-    [TOKEN_FN] =            {   2,  "fn",       "`fn`"          },
-    [TOKEN_FOR] =           {   3,  "for",      "`for`"         },
-    [TOKEN_BREAK] =         {   5,  "break",    "`break`"       },
-    [TOKEN_CONTINUE] =      {   8,  "continue", "`continue`"    },
+    [TOKEN_PLUS] =              {   1,  "+",        "`+`"           },
+    [TOKEN_MINUS] =             {   1,  "-",        "`-`"           },
+    [TOKEN_STAR] =              {   1,  "*",        "`*`"           },
+    [TOKEN_SLASH] =             {   1,  "/",        "`/`"           },
+    [TOKEN_PERCENT] =           {   1,  "%",        "`%`"           },
 
-    [TOKEN_INT] =           {   -1, {0},        "<integer>"     },
+    [TOKEN_CONST] =             {   5,  "const",    "`const`"       },
+    [TOKEN_LET] =               {   3,  "let",      "`let`"         },
+    [TOKEN_FN] =                {   2,  "fn",       "`fn`"          },
+    [TOKEN_FOR] =               {   3,  "for",      "`for`"         },
+    [TOKEN_BREAK] =             {   5,  "break",    "`break`"       },
+    [TOKEN_CONTINUE] =          {   8,  "continue", "`continue`"    },
+    [TOKEN_THEN] =              {   4,  "then",     "`then`"        },
+    [TOKEN_ELSE] =              {   4,  "else",     "`else`"        },
 
-    [TOKEN_IDENTIFIER] =    {   -1, {0},        "<identifier>"  },
+    [TOKEN_INT] =               {   -1, {0},        "<integer>"     },
+
+    [TOKEN_IDENTIFIER] =        {   -1, {0},        "<identifier>"  },
 };
 
 TokenKindInfo token_kind_info(TokenKind kind) {

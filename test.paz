@@ -1,4 +1,4 @@
 const main = fn (a: Int) -> Int => (
-    let foo = a for fn i => break i;
-    foo
+    let foo = a - 2 * b;
+    foo % a
 );

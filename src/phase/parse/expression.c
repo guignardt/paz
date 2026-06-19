@@ -8,6 +8,7 @@ typedef enum Precedence {
     PRECEDENCE_FLOW,
     PRECEDENCE_FOR,
     PRECEDENCE_ADD,
+    PRECEDENCE_MUL,
     PRECEDENCE_CALL,
     PRECEDENCE_ATOM,
 } Precedence;
@@ -21,7 +22,12 @@ Precedence binary_operator_precedence[] = {
     [AST_OPERATOR_FOR] = PRECEDENCE_FOR,
 
     [AST_OPERATOR_CALL] = PRECEDENCE_CALL,
+    
     [AST_OPERATOR_ADD] = PRECEDENCE_ADD,
+    [AST_OPERATOR_SUB] = PRECEDENCE_ADD,
+    [AST_OPERATOR_MUL] = PRECEDENCE_MUL,
+    [AST_OPERATOR_DIV] = PRECEDENCE_MUL,
+    [AST_OPERATOR_REM] = PRECEDENCE_MUL,
 };
 
 typedef struct TokenOperatorEntry {
@@ -38,8 +44,12 @@ TokenOperatorEntry token_operators[] = {
     [TOKEN_FOR] =       { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_FOR },
 
     [TOKEN_PLUS] =      { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_ADD },
+    [TOKEN_MINUS] =     { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_SUB },
+    [TOKEN_STAR] =      { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_MUL },
+    [TOKEN_SLASH] =     { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_DIV },
+    [TOKEN_PERCENT] =   { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_REM },
 
-    [TOKEN_IDENTIFIER] = {0}
+    [TOKEN_IDENTIFIER] = {0} // ensure every token kind has a slot
 };
 
 static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpression) dst);

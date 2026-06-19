@@ -26,6 +26,13 @@ typedef enum TokenKind {
     TOKEN_ARROW,
     TOKEN_DOUBLE_ARROW,
 
+    TOKEN_EQUAL_EQUAL,
+    TOKEN_BANG_EQUAL,
+    TOKEN_LESS,
+    TOKEN_LESS_EQUAL,
+    TOKEN_GREATER,
+    TOKEN_GREATER_EQUAL,
+
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,
@@ -38,6 +45,8 @@ typedef enum TokenKind {
     TOKEN_FOR,
     TOKEN_BREAK,
     TOKEN_CONTINUE,
+    TOKEN_THEN,
+    TOKEN_ELSE,
 
     TOKEN_INT,
 
@@ -47,7 +56,7 @@ typedef enum TokenKind {
 #define TOKEN_PUNCT_MIN (TOKEN_COMMA)
 #define TOKEN_PUNCT_MAX (TOKEN_PERCENT)
 #define TOKEN_KEYWORD_MIN (TOKEN_CONST)
-#define TOKEN_KEYWORD_MAX (TOKEN_CONTINUE)
+#define TOKEN_KEYWORD_MAX (TOKEN_ELSE)
 
 typedef struct TokenKindInfo {
     size_t len;                 // `-1` for dynamic tokens
