@@ -18,22 +18,48 @@ typedef struct AstFunction {
     struct AstExpression* output;
 } AstFunction;
 
+typedef enum AstUnaryOperator {
+    AST_OPERATOR_BREAK,
+    AST_OPERATOR_CONTINUE,
+} AstUnaryOperator;
+
+typedef struct AstUnaryOperation {
+    AstUnaryOperator operator;
+    struct AstExpression* operand;
+} AstUnaryOperation;
+
 typedef enum AstBinaryOperator {
     AST_OPERATOR_CALL,
 
     AST_OPERATOR_ADD,
+
+    AST_OPERATOR_FOR,
 } AstBinaryOperator;
 
 typedef struct AstBinaryOperation {
-    AstBinaryOperator op;
+    AstBinaryOperator operator;
     struct AstExpression* lhs;
     struct AstExpression* rhs;
 } AstBinaryOperation;
+
+typedef struct AstFor {
+    struct AstExpression* initial;
+    struct AstExpression* transition;
+} AstFor;
+
+typedef struct AstBreak {
+    struct AstExpression* value;
+} AstBreak;
+
+typedef struct AstContinue {
+    struct AstExpression* value;
+} AstContinue;
 
 typedef enum AstExpressionKind {
     AST_EXPRESSION_BLOCK,
     AST_EXPRESSION_REF,
     AST_EXPRESSION_FUNCTION,
+    AST_EXPRESSION_UNARY_OPERATION,
     AST_EXPRESSION_BINARY_OPERATION,
     AST_EXPRESSION_LITERAL_INT,
 } AstExpressionKind;
@@ -48,6 +74,7 @@ typedef struct AstExpression {
         AstBlock block;
         AstRef ref;
         AstFunction function;
+        AstUnaryOperation unary_operation;
         AstBinaryOperation binary_operation;
         int64_t literal_int;
     } as;

@@ -1,5 +1,6 @@
 const main = fn (a: Int) -> Int => (
     let tmp = foo(a);
-    const foo = 10; ;
+    const bar = 10; ;
+    let flow = break foo + 4;
     tmp + 2
 );

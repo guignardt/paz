@@ -74,9 +74,20 @@ void debug_ast_expression(AstExpression v) {
             debug_end();
             break;
 
+        case AST_EXPRESSION_UNARY_OPERATION:
+            debug_begin("unary operation");
+            debug_attr_int("operator", v.as.unary_operation.operator);
+            if (v.as.unary_operation.operand) {
+                debug_attr_begin("operand");
+                debug_ast_expression(*v.as.unary_operation.operand);
+                debug_attr_end();
+            }
+            debug_end();
+            break;
+
         case AST_EXPRESSION_BINARY_OPERATION:
             debug_begin("binary operation");
-            debug_attr_int("operator", v.as.binary_operation.op);
+            debug_attr_int("operator", v.as.binary_operation.operator);
             if (v.as.binary_operation.lhs) {
                 debug_attr_begin("lhs");
                 debug_ast_expression(*v.as.binary_operation.lhs);

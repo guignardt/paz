@@ -35,16 +35,19 @@ typedef enum TokenKind {
     TOKEN_CONST,
     TOKEN_LET,
     TOKEN_FN,
-
-    TOKEN_IDENTIFIER,
+    TOKEN_FOR,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
 
     TOKEN_INT,
+
+    TOKEN_IDENTIFIER,
 } TokenKind;
 
 #define TOKEN_PUNCT_MIN (TOKEN_COMMA)
 #define TOKEN_PUNCT_MAX (TOKEN_PERCENT)
 #define TOKEN_KEYWORD_MIN (TOKEN_CONST)
-#define TOKEN_KEYWORD_MAX (TOKEN_FN)
+#define TOKEN_KEYWORD_MAX (TOKEN_CONTINUE)
 
 typedef struct TokenKindInfo {
     size_t len;                 // `-1` for dynamic tokens
