@@ -28,9 +28,9 @@ static TokenKindInfo token_kind_infos[] = {
     [TOKEN_BREAK] =         {   5,  "break",    "`break`"       },
     [TOKEN_CONTINUE] =      {   8,  "continue", "`continue`"    },
 
-    [TOKEN_IDENTIFIER] =    {   -1, {0},        "<identifier>"  },
-
     [TOKEN_INT] =           {   -1, {0},        "<integer>"     },
+
+    [TOKEN_IDENTIFIER] =    {   -1, {0},        "<identifier>"  },
 };
 
 TokenKindInfo token_kind_info(TokenKind kind) {

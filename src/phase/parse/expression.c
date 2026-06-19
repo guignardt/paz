@@ -330,6 +330,8 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
 }
 
 static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpression) dst) {
+    // FIXME: better recovering
+
     AstFunction result = { .input = NULL, .output_type = NULL, .output = NULL };
     ParseStatus status; // must be set before gotoing to parse_function_continue_end
 
@@ -349,25 +351,20 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
 
     {
         Token arrow;
-        if (token_it_match_single(p.tokens, TOKEN_ARROW, &arrow)) {
-            unexpected_token();
-            status = PARSE_ILL;
-            goto parse_function_continue_end;
-        }
-        range.end = arrow.range.end;
-    }
-    
-    {
-        AstTypeName output_type;
-        ParseStatus output_type_status = parse_type_name(p, &output_type);
-        if (parse_status_returned(output_type_status)) {
-            result.output_type = ast_storage_alloc(p.storage, sizeof(AstTypeName));
-            *result.output_type = output_type;
-            range.end = output_type.range.end;
-        }
-        if (parse_status_ill(output_type_status)) {
-            status = PARSE_ILL;
-            goto parse_function_continue_end;
+        if (!token_it_match_single(p.tokens, TOKEN_ARROW, &arrow)) {
+            range.end = arrow.range.end;
+
+            AstTypeName output_type;
+            ParseStatus output_type_status = parse_type_name(p, &output_type);
+            if (parse_status_returned(output_type_status)) {
+                result.output_type = ast_storage_alloc(p.storage, sizeof(AstTypeName));
+                *result.output_type = output_type;
+                range.end = output_type.range.end;
+            }
+            if (parse_status_ill(output_type_status)) {
+                status = PARSE_ILL;
+                goto parse_function_continue_end;
+            }
         }
     }
 
