@@ -1,11 +1,12 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
-ParseStatus parse_pattern(Parser p, OUT(AstPattern) dst) {
+ParseStatus parse_pattern(Parser p, OUT(AstPattern*) dst) {
     TokenTree head;
     if (token_it_next(p.tokens, &head)) {
         unexpected_token();
-        return PARSE_ERROR;
+        if (dst) *dst = NULL;
+        return PARSE_ILL;
     }
 
     switch (head.kind) {
@@ -23,7 +24,9 @@ ParseStatus parse_pattern(Parser p, OUT(AstPattern) dst) {
         case TOKEN_TREE_SINGLE:
             switch (head.as.single.kind) {
                 case TOKEN_IDENTIFIER: break;
-                default: return PARSE_ERROR;
+                default:
+                    if (dst) *dst = NULL;
+                    return PARSE_ILL;
             }
             break;
     }
@@ -39,42 +42,37 @@ ParseStatus parse_pattern(Parser p, OUT(AstPattern) dst) {
         }
     };
 
-    AstTypeName* p_type_name = NULL;
+    AstTypeName* type_name = NULL;
     ParseStatus type_status = PARSE_OK;
     Token colon_token;
     if (!token_it_match_single(p.tokens, TOKEN_COLON, &colon_token)) {
         range.end = colon_token.range.end;
-
-        AstTypeName type_name;
         type_status = parse_type_name(p, &type_name);
-        if (type_status == PARSE_ERROR) {
-            p_type_name = NULL;
-            type_status = PARSE_ILL;
-        } else {
-            range.end = type_name.range.end;
-            p_type_name = ast_storage_alloc(p.storage, sizeof(AstTypeName));
-            *p_type_name = type_name;
+        if (type_name) {
+            range.end = type_name->range.end;
         }
     }
 
-    if (dst) {
-        *dst = (AstPattern) {
-            .next = NULL,
-            .range = range,
-            .kind = AST_PATTERN_VARIABLE,
-            .as.variable = {
-                .identifier = identifier,
-                .type_name = p_type_name,
-            },
-        };
-    }
+    AstPattern pat = {
+        .next = NULL,
+        .range = range,
+        .kind = AST_PATTERN_VARIABLE,
+        .as.variable = (AstPatternVariable) {
+            .identifier = identifier,
+            .type_name = type_name,
+        },
+    };
+    AstPattern* ptr = ast_storage_alloc(p.storage, sizeof(AstPattern));
+    *ptr = pat;
+    if (dst) *dst = ptr;
     return type_status;
 }
 
-ParseStatus parse_type_name(Parser p, OUT(AstTypeName) dst) {
+ParseStatus parse_type_name(Parser p, OUT(AstTypeName*) dst) {
     Token identifier_token;
     if (token_it_match_single(p.tokens, TOKEN_IDENTIFIER, &identifier_token)) {
-        return PARSE_ERROR;
+        *dst = NULL;
+        return PARSE_ILL;
     }
     Range range = identifier_token.range;
     AstIdentifier identifier = {
@@ -84,11 +82,14 @@ ParseStatus parse_type_name(Parser p, OUT(AstTypeName) dst) {
             .len = range.end - range.start
         }
     };
-    *dst = (AstTypeName) {
+    AstTypeName v = {
         .next = NULL,
-        .range = identifier_token.range,
+        .range = range,
         .kind = AST_TYPE_NAME_IDENTIFIER,
         .as.identifier = identifier,
     };
+    AstTypeName* ptr = ast_storage_alloc(p.storage, sizeof(AstTypeName));
+    *ptr = v;
+    if (dst) *dst = ptr;
     return PARSE_OK;
 }

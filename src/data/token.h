@@ -60,8 +60,8 @@ typedef enum TokenKind {
 #define TOKEN_KEYWORD_MAX (TOKEN_ELSE)
 
 typedef struct TokenKindInfo {
-    size_t len;                 // `-1` for dynamic tokens
-    char exact_chars[8];        // all `0` for dynamic tokens
+    int8_t len;                  // `-1` for dynamic tokens
+    char exact_chars[15];        // all `0` for dynamic tokens
     char const* description;
 } TokenKindInfo;
 

@@ -41,15 +41,12 @@ static void tokenize_group(Tokenizer* t, TokenDelim delim) {
     // FIXME: detect mismatched delimiters better
 
     char right;
-    char const* right_description;
     TokenStreamGroupBuilder group;
     if (delim == -1) {
         right = '\0';
-        right_description = "end-of-file";
     } else {
         TokenDelimInfo info = token_delim_info(delim);
         right = info.right;
-        right_description = info.right_description;
         group = token_stream_open_group(t->dst, TOKEN_DELIM_PAREN, t->pos++);
     }
 

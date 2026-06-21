@@ -51,4 +51,4 @@ typedef struct AstTypeName {
     } as;
 } AstTypeName;
 
-void debug_ast_type_name(AstTypeName v);
+void debug_ast_type_name(AstTypeName const* v);

@@ -17,4 +17,4 @@ typedef struct AstBinding {
     struct AstExpression* value;
 } AstBinding;
 
-void debug_ast_binding(AstBinding v);
+void debug_ast_binding(AstBinding const* v);

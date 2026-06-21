@@ -75,7 +75,7 @@ int main(int argc, char const** argv) {
         .tokens = &token_it,
         .storage = &ast_storage,
     };
-    AstProgram program;
+    AstProgram* program;
     parse_program(parser, &program);
 
 #if DEBUG_AST

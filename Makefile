@@ -7,6 +7,7 @@ RELEASE_DIR := $(BUILD_DIR)/release
 RELEASE_TARGET := $(RELEASE_DIR)/paz
 
 CPPFLAGS := -I src/
+CFLAGS := -Wall -Wextra -Wno-sign-compare
 DEBUG_FLAGS := -g -fsanitize=address,undefined
 RELEASE_FLAGS := -O3
 

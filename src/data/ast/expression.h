@@ -86,4 +86,4 @@ typedef struct AstExpression {
     } as;
 } AstExpression;
 
-void debug_ast_expression(AstExpression v);
+void debug_ast_expression(AstExpression const* v);

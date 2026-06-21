@@ -13,8 +13,8 @@ typedef struct AstModule {
 } AstModule;
 
 typedef struct AstProgram {
-    AstModule root;
+    AstModule* root;
 } AstProgram;
 
-void debug_ast_module(AstModule v);
-void debug_ast_program(AstProgram v);
+void debug_ast_module(AstModule const* v);
+void debug_ast_program(AstProgram const* v);

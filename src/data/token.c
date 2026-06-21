@@ -186,7 +186,7 @@ int token_it_find_single(TokenIt* it, TokenKind kind, OUT(Token) dst) {
         if (token_it_next(it, &tree)) {
             return -1;
         }
-        if (tree.kind != TOKEN_TREE_SINGLE) {
+        if (tree.kind != TOKEN_TREE_SINGLE || tree.as.single.kind != kind) {
             continue;
         }
         if (dst) {
@@ -202,7 +202,7 @@ int token_it_find_group(TokenIt* it, TokenDelim delim, OUT(TokenGroup) dst) {
         if (token_it_next(it, &tree)) {
             return -1;
         }
-        if (tree.kind != TOKEN_TREE_GROUP) {
+        if (tree.kind != TOKEN_TREE_GROUP || tree.as.group.delim == delim) {
             continue;
         }
         if (dst) {

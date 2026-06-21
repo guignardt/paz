@@ -60,7 +60,7 @@ Reporter default_reporter(void) {
 
 static Severity default_reporter_current_severity = SEVERITY_DEBUG;
 
-static void default_reporter_begin(Severity severity, int32_t code) {
+static void default_reporter_begin(Severity severity, [[maybe_unused]] int32_t code) {
     default_reporter_current_severity = severity;
 }
 

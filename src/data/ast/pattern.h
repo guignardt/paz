@@ -23,4 +23,4 @@ typedef struct AstPattern {
     } as;
 } AstPattern;
 
-void debug_ast_pattern(AstPattern v);
+void debug_ast_pattern(AstPattern const* v);
