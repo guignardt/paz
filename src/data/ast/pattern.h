@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data/ast/identifier.h"
-#include "data/ast/type.h"
+#include "data/ast/type_name.h"
 
 typedef struct AstPatternVariable {
     AstIdentifier identifier;

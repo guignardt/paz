@@ -1,7 +1,7 @@
 #include <stdlib.h>
 
-#include "util/alloc.h"
-#include "data/ast/type.h"
+#include "data/type.h"
+
 #include "diagnostic/report.h"
 
 TypeRegistry type_registry_new(void) {
