@@ -3,7 +3,6 @@
 #include "data/ast/binding.h"
 #include "data/ast/expression.h"
 #include "data/ast/identifier.h"
-#include "data/ast/node.h"
 #include "data/ast/pattern.h"
 #include "data/ast/storage.h"
 #include "data/ast/type_name.h"
