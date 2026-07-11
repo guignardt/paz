@@ -6,7 +6,7 @@
 #include "util/alloc.h"
 
 typedef enum AstTypeNameKind {
-    AST_TYPE_NAME_IDENTIFIER
+    AST_TYPE_NAME_REFERENCE
 } AstTypeNameKind;
 
 typedef struct AstTypeName {
@@ -16,7 +16,7 @@ typedef struct AstTypeName {
 
     AstTypeNameKind kind;
     union {
-        AstIdentifier identifier;
+        AstIdentifier reference;
     } as;
 } AstTypeName;
 

@@ -61,9 +61,9 @@ void debug_ast_expression(AstExpression const* p) {
             debug_end();
             break;
 
-        case AST_EXPRESSION_REF:
+        case AST_EXPRESSION_REFERENCE:
             debug_begin("ref");
-            debug_attr_string("identifier", v.as.ref.identifier.string);
+            debug_attr_string("identifier", v.as.reference.identifier.string);
             debug_end();
             break;
 
@@ -163,9 +163,9 @@ void debug_ast_type_name(AstTypeName const* p) {
     AstTypeName v = *p;
 
     switch (v.kind) {
-        case AST_TYPE_NAME_IDENTIFIER:
-            debug_begin("identifier type name");
-            debug_attr_string("identifier", v.as.identifier.string);
+        case AST_TYPE_NAME_REFERENCE:
+            debug_begin("reference type name");
+            debug_attr_string("reference", v.as.reference.string);
             debug_end();
             break;
     }

@@ -85,8 +85,8 @@ ParseStatus parse_type_name(Parser p, OUT(AstTypeName*) dst) {
     AstTypeName v = {
         .next = NULL,
         .range = range,
-        .kind = AST_TYPE_NAME_IDENTIFIER,
-        .as.identifier = identifier,
+        .kind = AST_TYPE_NAME_REFERENCE,
+        .as.reference = identifier,
     };
     AstTypeName* ptr = ast_storage_alloc(p.storage, sizeof(AstTypeName));
     *ptr = v;

@@ -8,9 +8,9 @@ typedef struct AstBlock {
     struct AstExpression* tail; // optional
 } AstBlock;
 
-typedef struct AstRef {
+typedef struct AstReference {
     AstIdentifier identifier;
-} AstRef;
+} AstReference;
 
 typedef struct AstFunction {
     AstPattern* input;
@@ -61,7 +61,7 @@ typedef struct AstConditional {
 
 typedef enum AstExpressionKind {
     AST_EXPRESSION_BLOCK,
-    AST_EXPRESSION_REF,
+    AST_EXPRESSION_REFERENCE,
     AST_EXPRESSION_FUNCTION,
     AST_EXPRESSION_UNARY_OPERATION,
     AST_EXPRESSION_BINARY_OPERATION,
@@ -77,7 +77,7 @@ typedef struct AstExpression {
     AstExpressionKind kind;
     union {
         AstBlock block;
-        AstRef ref;
+        AstReference reference;
         AstFunction function;
         AstUnaryOperation unary_operation;
         AstBinaryOperation binary_operation;
@@ -85,5 +85,17 @@ typedef struct AstExpression {
         int64_t literal_int;
     } as;
 } AstExpression;
+
+typedef struct AstExpressionVisitor {
+    void(*block)            (AstBlock const* v,             void* data);
+    void(*reference)        (AstReference const* v,         void* data);
+    void(*function)         (AstFunction const* v,          void* data);
+    void(*unary_operation)  (AstUnaryOperation const* v,    void* data);
+    void(*binary_operation) (AstBinaryOperation const* v,   void* data);
+    void(*conditional)      (AstConditional const* v,       void* data);
+    void(*literal_int)      (int64_t const* v,              void* data);
+} AstExpressionVisitor;
+
+void ast_expression_visit(AstExpression const* v, AstExpressionVisitor visitor, void* data);
 
 void debug_ast_expression(AstExpression const* v);

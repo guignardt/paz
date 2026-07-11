@@ -255,8 +255,8 @@ static void ast_ref_new(Parser p, Range range, OUT(AstExpression*) dst) {
     AstExpression v = {
         .next = NULL,
         .range = range,
-        .kind = AST_EXPRESSION_REF,
-        .as.ref = (AstRef) {
+        .kind = AST_EXPRESSION_REFERENCE,
+        .as.reference = (AstReference) {
             .identifier = identifier,
         },
     };
