@@ -1,25 +1,25 @@
-#include "phase/analyze/analyze.h"
+#include "phase/analyze.h"
 
-static AnalyzeWalker analyze_walker_scope(AnalyzeWalker w, AnScopeId scope) {
+static AnalyzeWalk analyze_walker_scope(AnalyzeWalk w, AnScopeId scope) {
     w._scope = scope;
     return w;
 }
 
-void analyze_walk_module(AnalyzeWalker w, AstModule const* p) {
+void analyze_walk_module(AnalyzeWalk w, AstModule const* p) {
     for (AstBinding* b = p->bindings; b; b = b->next) {
         analyze_walk_binding(w, b);
     }
 }
 
-void analyze_walk_expression(AnalyzeWalker w, AstExpression const* p) {
+void analyze_walk_expression(AnalyzeWalk w, AstExpression const* p) {
     AstExpression v = *p;
 
     AnScopeId id;
-    AnalyzeWalker w2;
+    AnalyzeWalk w2;
 
     switch (v.kind){
         case AST_EXPRESSION_BLOCK:;
-            id = an_new_scope(w.bindings, w._scope, false);
+            id = an_new_scope(w.scope_bindings, w._scope, false);
             ptr_hash_table_insert(&w.expression_scopes->table, (intptr_t)p, &id);
             
             w2 = analyze_walker_scope(w, id);
@@ -35,7 +35,7 @@ void analyze_walk_expression(AnalyzeWalker w, AstExpression const* p) {
             break;
 
         case AST_EXPRESSION_FUNCTION:;
-            id = an_new_scope(w.bindings, w._scope, true);
+            id = an_new_scope(w.scope_bindings, w._scope, true);
             ptr_hash_table_insert(&w.expression_scopes->table, (intptr_t)p, &id);
 
             AnFunction an = {
@@ -44,6 +44,7 @@ void analyze_walk_expression(AnalyzeWalker w, AstExpression const* p) {
                 .captured_bindings_len = 0,
             };
             an_functions_register(w.functions, an);
+            ptr_hash_table_insert(&w.function_ids, (intptr_t)p, &id);
 
             w2 = analyze_walker_scope(w, id);
             analyze_walk_pattern(w2, v.as.function.input);
@@ -73,7 +74,7 @@ void analyze_walk_expression(AnalyzeWalker w, AstExpression const* p) {
     }
 }
 
-void analyze_walk_type_name(AnalyzeWalker w, AstTypeName const* p) {
+void analyze_walk_type_name(AnalyzeWalk w, AstTypeName const* p) {
     AstTypeName v = *p;
     switch (v.kind) {
         case AST_TYPE_NAME_REFERENCE:
@@ -81,16 +82,33 @@ void analyze_walk_type_name(AnalyzeWalker w, AstTypeName const* p) {
     }
 }
 
-void analyze_walk_pattern(AnalyzeWalker w, AstPattern const* p) {
+void analyze_walk_pattern(AnalyzeWalk w, AstPattern const* p) {
     AstPattern v = *p;
     switch (v.kind) {
-        case AST_PATTERN_VARIABLE:
+        case AST_PATTERN_VARIABLE:;
+            AnBinding an = {
+                .name = v.as.variable.identifier.string,
+                .kind = w._binding_kind,
+            };
+            AnBindingId id = an_push_binding(w.scope_bindings, w._scope, an);
+            ptr_hash_table_insert(&w.binding_ids->table, (intptr_t)p, &id);
             break;
     }
 }
 
-void analyze_walk_binding(AnalyzeWalker w, AstBinding const* p) {
+void analyze_walk_binding(AnalyzeWalk w, AstBinding const* p) {
     AstBinding v = *p;
-    analyze_walk_pattern(w, v.pattern);
+
+    if (v.kind == AST_BINDING_CONSTANT) {
+        an_register_constant_binding(w.constant_bindings, p);
+    }
+
     analyze_walk_expression(w, v.value);
+
+    switch (v.kind) {
+        case AST_BINDING_CONSTANT: w._binding_kind = AN_BINDING_CONSTANT; break;
+        case AST_BINDING_VARIABLE: w._binding_kind = AN_BINDING_VARIABLE; break;
+    }
+
+    analyze_walk_pattern(w, v.pattern);
 }

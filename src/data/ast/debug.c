@@ -165,7 +165,7 @@ void debug_ast_type_name(AstTypeName const* p) {
     switch (v.kind) {
         case AST_TYPE_NAME_REFERENCE:
             debug_begin("reference type name");
-            debug_attr_string("reference", v.as.reference.string);
+            debug_attr_string("reference", v.as.reference.identifier.string);
             debug_end();
             break;
     }

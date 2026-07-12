@@ -5,6 +5,10 @@
 #include "data/ast/identifier.h"
 #include "util/alloc.h"
 
+typedef struct AstReference {
+    AstIdentifier identifier;
+} AstReference;
+
 typedef enum AstTypeNameKind {
     AST_TYPE_NAME_REFERENCE
 } AstTypeNameKind;
@@ -16,7 +20,7 @@ typedef struct AstTypeName {
 
     AstTypeNameKind kind;
     union {
-        AstIdentifier reference;
+        AstReference reference;
     } as;
 } AstTypeName;
 

@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 
+#include "data/ast.h"
 #include "data/analysis/id.h"
 #include "data/analysis/ptr_hash_table.h"
 
@@ -9,6 +10,7 @@
 #include "util/string.h"
 
 typedef enum AnConstantKind {
+    AN_CONSTANT_INVALID,
     AN_CONSTANT_TYPE,
     AN_CONSTANT_FUNCTION,
 } AnConstantKind;
@@ -32,6 +34,7 @@ typedef enum AnBindingKind {
 
 typedef struct AnBinding {
     String name;
+    AnBindingKind kind;
     union {
         AnConstant constant;
         AnVariable variable;
@@ -54,7 +57,21 @@ typedef struct AnScopeBindings {
 
 AnScopeId an_new_scope(AnScopeBindings* bindings, AnScopeId parent, bool function);
 AnBindingId an_push_binding(AnScopeBindings* bindings, AnScopeId scope, AnBinding binding);
+AnBinding const* an_get_binding(AnScopeBindings bindings, AnBindingId id);
+AnBinding* an_get_binding_mut(AnScopeBindings* bindings, AnBindingId id);
 
 typedef struct AnExpressionScopes {
-    PtrHashTable table; // expression -> `AnScopeId`
+    PtrHashTable table; // `AstExpression*` -> `AnScopeId`
 } AnExpressionScopes;
+
+typedef struct AnBindingIds {
+    PtrHashTable table; // `AstPattern*` (of kind variable) -> `AnBindingId`
+} AnBindingIds;
+
+typedef struct AnConstantBindings {
+    BOXED(AstBinding const*) data;
+    size_t len;
+    size_t _capacity;
+} AnConstantBindings;
+
+void an_register_constant_binding(AnConstantBindings* bindings, AstBinding const* v);

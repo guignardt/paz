@@ -8,10 +8,6 @@ typedef struct AstBlock {
     struct AstExpression* tail; // optional
 } AstBlock;
 
-typedef struct AstReference {
-    AstIdentifier identifier;
-} AstReference;
-
 typedef struct AstFunction {
     AstPattern* input;
     AstTypeName* output_type; // optional

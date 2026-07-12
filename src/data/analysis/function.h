@@ -12,9 +12,13 @@ typedef struct AnFunction {
 } AnFunction;
 
 typedef struct AnFunctions {
-    BOXED(AnFunction) functions;
-    size_t _functions_capacity;
-    size_t functions_len;
+    BOXED(AnFunction) data;
+    size_t _capacity;
+    size_t len;
 } AnFunctions;
+
+typedef struct AnFunctionIds {
+    PtrHashTable table; // `AstExpression*` (of kind function) -> `AnFunctionId`
+} AnFunctionIds;
 
 AnFunctionId an_functions_register(AnFunctions* nodes, AnFunction v);
