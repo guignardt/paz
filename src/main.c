@@ -10,6 +10,7 @@
 
 #include "phase/tokenize.h"
 #include "phase/parse.h"
+#include "phase/analyze.h"
 
 #define DEBUG_SOURCE_CODE   0
 #define DEBUG_LINE_INDICES  0
@@ -86,6 +87,13 @@ int main(int argc, char const** argv) {
     if (report_count(SEVERITY_ERROR) > 0) {
         goto parse_error_end;
     }
+
+    Analysis analysis = analysis_new();
+
+    AnalyzeWalk walk = analyze_walk_init(&analysis);
+    analyze_walk_module(walk, program->root);
+
+    analyze_constant_bindings(&analysis);
 
 parse_error_end:
     ast_storage_free(&ast_storage);

@@ -9,3 +9,14 @@
 typedef struct AnExpressionTypes {
     PtrHashTable table; // values are `AnTypeId`
 } AnExpressionTypes;
+
+typedef struct Analysis {
+    AnFunctions functions;
+    AnFunctionIds function_ids;
+    AnScopeBindings scope_bindings;
+    AnExpressionScopes expression_scopes;
+    AnBindingIds binding_ids;
+    AnConstantBindings constant_bindings;
+} Analysis;
+
+Analysis analysis_new(void);

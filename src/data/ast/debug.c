@@ -62,7 +62,7 @@ void debug_ast_expression(AstExpression const* p) {
             break;
 
         case AST_EXPRESSION_REFERENCE:
-            debug_begin("ref");
+            debug_begin("reference");
             debug_attr_string("identifier", v.as.reference.identifier.string);
             debug_end();
             break;

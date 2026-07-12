@@ -56,21 +56,24 @@ void* ptr_hash_table_get_mut(PtrHashTable* p_table, intptr_t key) {
 }
 
 // assumes the hash map contains a vacant entry
-void ptr_hash_table_insert_vacant(PtrHashTable* p_table, intptr_t key, void const* value) {
+bool ptr_hash_table_insert_vacant(PtrHashTable* p_table, intptr_t key, void const* value) {
     PtrHashTable table = *p_table;
 
     intptr_t* keys = table._data;
 
     size_t start_i = hash_ptr(key) % table._entry_count;
     size_t i = start_i;
+    bool replaced;
     while (1) {
         intptr_t* entry_key = &keys[i];
         if (!*entry_key) {
             *entry_key = key;
             table._len++;
+            replaced = false;
             break;
         }
         if (*entry_key == key) {
+            replaced = true;
             break;
         }
         i++;
@@ -84,17 +87,20 @@ void ptr_hash_table_insert_vacant(PtrHashTable* p_table, intptr_t key, void cons
     }
 
     *p_table = table;
+
+    return replaced;
 }
 
 #define MAX_LOAD_FACTOR 0.75
 
-void ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* value) {
+bool ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* value) {
     PtrHashTable table = *p_table;
-
+    
     // we first resize if needed, ensuring there is room
     if (table._len >= MAX_LOAD_FACTOR * table._entry_count) {
-        size_t new_entry_count = 2 * table._entry_count;
+        size_t new_entry_count = (table._entry_count <= 2) ? 4 : (2 * table._entry_count);
         void* new_data = alloc_or_exit(new_entry_count * (sizeof(intptr_t) + table._value_size));
+        memset(new_data, 0, new_entry_count * sizeof(intptr_t));
         PtrHashTable new_table = {
             ._data = new_data,
             ._entry_count = new_entry_count,
@@ -103,6 +109,7 @@ void ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* valu
         };
 
         intptr_t const* keys = table._data;
+
         void const* values = keys + table._entry_count;
         for (size_t i = 0; i < table._entry_count; i++) {
             intptr_t key = keys[i];
@@ -115,7 +122,9 @@ void ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* valu
         table = new_table;
     }
 
-    ptr_hash_table_insert_vacant(&table, key, value);
+    bool replaced = ptr_hash_table_insert_vacant(&table, key, value);
 
     *p_table = table;
+
+    return replaced;
 }

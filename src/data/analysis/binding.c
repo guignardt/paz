@@ -25,3 +25,11 @@ void an_register_constant_binding(AnConstantBindings* bindings, AstBinding const
     reserve(ERASE2(&bindings->data), &bindings->_capacity, bindings->len + 1, sizeof(v));
     bindings->data[bindings->len++] = v;
 }
+
+AnBinding const* an_get_binding(AnScopeBindings bindings, AnBindingId id) {
+    return &bindings.scopes[id.scope].bindings[id._index];
+}
+
+AnBinding* an_get_binding_mut(AnScopeBindings* bindings, AnBindingId id) {
+    return &bindings->scopes[id.scope].bindings[id._index];
+}

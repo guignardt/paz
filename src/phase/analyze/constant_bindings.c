@@ -16,14 +16,14 @@ static int match_constant_pattern(
     AnBindingIds binding_ids
 );
 
-void analyze_constant_bindings(AnalyzeConstantBindings a) {
+void analyze_constant_bindings(Analysis* a) {
     ConstantEvaluator ev = {
-        .function_ids = a.function_ids,
-        .scope_bindings = a.scope_bindings,
+        .function_ids = a->function_ids,
+        .scope_bindings = a->scope_bindings,
     };
 
-    for (size_t i = 0; i < a.constant_bindings.len; i++) {
-        AstBinding const* binding = a.constant_bindings.data[i];
+    for (size_t i = 0; i < a->constant_bindings.len; i++) {
+        AstBinding const* binding = a->constant_bindings.data[i];
         
         AnConstant v = { .kind = AN_CONSTANT_INVALID };
 
@@ -34,7 +34,7 @@ void analyze_constant_bindings(AnalyzeConstantBindings a) {
             continue;
         }
 
-        if (match_constant_pattern(binding->pattern, v, a.scope_bindings, a.binding_ids)) {
+        if (match_constant_pattern(binding->pattern, v, &a->scope_bindings, a->binding_ids)) {
             report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
             report_message("invalid constant binding value");
             report_end();
@@ -48,7 +48,7 @@ static int evaluate_constant(ConstantEvaluator ev, AstExpression const* v, OUT(A
         case AST_EXPRESSION_FUNCTION:;
             *dst = (AnConstant) {
                 .kind = AN_CONSTANT_FUNCTION,
-                .as.function = *(AnFunctionId const*)ptr_hash_table_get(ev.function_ids.table, v),
+                .as.function = *(AnFunctionId const*)ptr_hash_table_get(ev.function_ids.table, (intptr_t)v),
             };
             return 0;
         

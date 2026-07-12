@@ -1,11 +1,20 @@
 #include "phase/analyze.h"
 
+AnalyzeWalk analyze_walk_init(Analysis* analysis) {
+    return (AnalyzeWalk) {
+        .analysis = analysis,
+        ._scope = AN_SCOPE_ID_SENTINEL,
+        ._binding_kind = AN_BINDING_CONSTANT,
+    };
+}
+
 static AnalyzeWalk analyze_walker_scope(AnalyzeWalk w, AnScopeId scope) {
     w._scope = scope;
     return w;
 }
 
 void analyze_walk_module(AnalyzeWalk w, AstModule const* p) {
+    w._scope = an_new_scope(&w.analysis->scope_bindings, AN_SCOPE_ID_SENTINEL, false);
     for (AstBinding* b = p->bindings; b; b = b->next) {
         analyze_walk_binding(w, b);
     }
@@ -19,8 +28,8 @@ void analyze_walk_expression(AnalyzeWalk w, AstExpression const* p) {
 
     switch (v.kind){
         case AST_EXPRESSION_BLOCK:;
-            id = an_new_scope(w.scope_bindings, w._scope, false);
-            ptr_hash_table_insert(&w.expression_scopes->table, (intptr_t)p, &id);
+            id = an_new_scope(&w.analysis->scope_bindings, w._scope, false);
+            ptr_hash_table_insert(&w.analysis->expression_scopes.table, (intptr_t)p, &id);
             
             w2 = analyze_walker_scope(w, id);
             for (AstBinding* b = v.as.block.bindings; b; b = b->next) {
@@ -35,16 +44,16 @@ void analyze_walk_expression(AnalyzeWalk w, AstExpression const* p) {
             break;
 
         case AST_EXPRESSION_FUNCTION:;
-            id = an_new_scope(w.scope_bindings, w._scope, true);
-            ptr_hash_table_insert(&w.expression_scopes->table, (intptr_t)p, &id);
+            id = an_new_scope(&w.analysis->scope_bindings, w._scope, true);
+            ptr_hash_table_insert(&w.analysis->expression_scopes.table, (intptr_t)p, &id);
 
             AnFunction an = {
                 .expression = p,
                 .captured_bindings = NULL,
                 .captured_bindings_len = 0,
             };
-            an_functions_register(w.functions, an);
-            ptr_hash_table_insert(&w.function_ids, (intptr_t)p, &id);
+            an_functions_register(&w.analysis->functions, an);
+            ptr_hash_table_insert(&w.analysis->function_ids.table, (intptr_t)p, &id);
 
             w2 = analyze_walker_scope(w, id);
             analyze_walk_pattern(w2, v.as.function.input);
@@ -90,8 +99,8 @@ void analyze_walk_pattern(AnalyzeWalk w, AstPattern const* p) {
                 .name = v.as.variable.identifier.string,
                 .kind = w._binding_kind,
             };
-            AnBindingId id = an_push_binding(w.scope_bindings, w._scope, an);
-            ptr_hash_table_insert(&w.binding_ids->table, (intptr_t)p, &id);
+            AnBindingId id = an_push_binding(&w.analysis->scope_bindings, w._scope, an);
+            ptr_hash_table_insert(&w.analysis->binding_ids.table, (intptr_t)p, &id);
             break;
     }
 }
@@ -100,7 +109,7 @@ void analyze_walk_binding(AnalyzeWalk w, AstBinding const* p) {
     AstBinding v = *p;
 
     if (v.kind == AST_BINDING_CONSTANT) {
-        an_register_constant_binding(w.constant_bindings, p);
+        an_register_constant_binding(&w.analysis->constant_bindings, p);
     }
 
     analyze_walk_expression(w, v.value);
