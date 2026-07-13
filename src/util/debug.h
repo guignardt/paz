@@ -17,6 +17,7 @@ void debug_begin(char const* name);
 void debug_end(void);
 void debug_attr_begin(char const* name);
 void debug_attr_end();
+void debug_attr_ptr(char const* name, void const* ptr);
 void debug_attr_int(char const* name, long long v);
 void debug_attr_range(char const* name, Range range);
 void debug_attr_string(char const* name, String string);

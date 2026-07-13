@@ -55,3 +55,8 @@ AnTypeId an_types_get_id_or_insert(AnTypes* types, AnType type) {
     types->_data[types->_len++] = type;
     return id;
 }
+
+void an_register_expression(AnExpressions* expressions, AstExpression const* v) {
+    reserve(ERASE2(&expressions->data), &expressions->_capacity, expressions->len + 1, sizeof(v));
+    expressions->data[expressions->len++] = v;
+}

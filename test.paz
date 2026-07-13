@@ -2,3 +2,9 @@ const main = fn (a: Int) -> Int => (
     let foo = a - 2 * b;
     if 42 == foo % a then 3 else a + 2
 );
+
+const foo = fn (a: Int) -> Int => (a);
+const foo = fn (a: Int) -> Int => (a);
+const foo = fn (a: Int) -> Int => (a);
+const foo = fn (a: Int) -> Int => (a);
+const foo = fn (a: Int) -> Int => (a);

@@ -22,6 +22,10 @@ void debug_attr_end() {
     indent -= 2;
 }
 
+void debug_attr_ptr(char const* name, void const* ptr) {
+    eprintf("%*s%s: %p\n", indent, "", name, ptr);
+}
+
 void debug_attr_int(char const* name, long long v) {
     eprintf("%*s%s: %lld\n", indent, "", name, v);
 }

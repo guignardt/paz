@@ -6,11 +6,14 @@ void debug_ast_module(AstModule const* p) {
     AstModule v = *p;
 
     debug_begin("module");
+    debug_attr_ptr("addr", p);
+
     debug_attr_begin_list("bindings");
     for (AstBinding const* b = v.bindings; b; b = b->next) {
         debug_ast_binding(b);
     }
     debug_attr_end_list();
+
     debug_end();
 }
 
@@ -26,6 +29,7 @@ void debug_ast_binding(AstBinding const* p) {
     AstBinding v = *p;
 
     debug_begin("binding");
+    debug_attr_ptr("addr", p);
 
     debug_attr_int("kind", v.kind);
 
@@ -47,6 +51,7 @@ void debug_ast_expression(AstExpression const* p) {
     switch (v.kind) {
         case AST_EXPRESSION_BLOCK:
             debug_begin("block");
+            debug_attr_ptr("addr", p);
 
             debug_attr_begin_list("bindings");
             for (AstBinding const* b = v.as.block.bindings; b; b = b->next) {
@@ -63,12 +68,14 @@ void debug_ast_expression(AstExpression const* p) {
 
         case AST_EXPRESSION_REFERENCE:
             debug_begin("reference");
+            debug_attr_ptr("addr", p);
             debug_attr_string("identifier", v.as.reference.identifier.string);
             debug_end();
             break;
 
         case AST_EXPRESSION_FUNCTION:
             debug_begin("function");
+            debug_attr_ptr("addr", p);
 
             debug_attr_begin("input");
             debug_ast_pattern(v.as.function.input);
@@ -87,6 +94,7 @@ void debug_ast_expression(AstExpression const* p) {
 
         case AST_EXPRESSION_CONDITIONAL:
             debug_begin("conditional");
+            debug_attr_ptr("addr", p);
 
             debug_attr_begin("condition");
             debug_ast_expression(v.as.conditional.condition);
@@ -105,6 +113,7 @@ void debug_ast_expression(AstExpression const* p) {
 
         case AST_EXPRESSION_UNARY_OPERATION:
             debug_begin("unary operation");
+            debug_attr_ptr("addr", p);
 
             debug_attr_int("operator", v.as.unary_operation.operator);
 
@@ -117,6 +126,7 @@ void debug_ast_expression(AstExpression const* p) {
 
         case AST_EXPRESSION_BINARY_OPERATION:
             debug_begin("binary operation");
+            debug_attr_ptr("addr", p);
 
             debug_attr_int("operator", v.as.binary_operation.operator);
             
@@ -133,6 +143,7 @@ void debug_ast_expression(AstExpression const* p) {
 
         case AST_EXPRESSION_LITERAL_INT:
             debug_begin("int literal");
+            debug_attr_ptr("addr", p);
             debug_attr_int("value", v.as.literal_int);
             debug_end();
             break;
@@ -146,6 +157,7 @@ void debug_ast_pattern(AstPattern const* p) {
     switch (v.kind) {
         case AST_PATTERN_VARIABLE:
             debug_begin("variable");
+            debug_attr_ptr("addr", p);
             
             debug_attr_string("identifier", v.as.variable.identifier.string);
 
@@ -165,6 +177,7 @@ void debug_ast_type_name(AstTypeName const* p) {
     switch (v.kind) {
         case AST_TYPE_NAME_REFERENCE:
             debug_begin("reference type name");
+            debug_attr_ptr("addr", p);
             debug_attr_string("reference", v.as.reference.identifier.string);
             debug_end();
             break;

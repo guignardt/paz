@@ -3,14 +3,17 @@
 
 #include "data/analysis.h"
 
-size_t hash_ptr(size_t v) {
-    // Based on 'fxhash'.
-    // https://nnethercote.github.io/2021/12/08/a-brutally-effective-hash-function-in-rust.html
+size_t hash_ptr(size_t key) {
+    // based on https://gist.github.com/badboy/6267743.
 
-    v = v << 5 | v >> (sizeof(size_t) * 8 - 5); // rotate left by 5
-    v ^= 5;
-    v *= 0x517cc1b727220a95;
-    return v;
+    key = (~key) + (key << 21); // key = (key << 21) - key - 1;
+    key = key ^ (key >> 24);
+    key = (key + (key << 3)) + (key << 8); // key * 265
+    key = key ^ (key >> 14);
+    key = (key + (key << 2)) + (key << 4); // key * 21
+    key = key ^ (key >> 28);
+    key = key + (key << 31);
+    return key;
 }
 
 PtrHashTable ptr_hash_table_new(size_t value_size) {
@@ -61,7 +64,8 @@ bool ptr_hash_table_insert_vacant(PtrHashTable* p_table, intptr_t key, void cons
 
     intptr_t* keys = table._data;
 
-    size_t start_i = hash_ptr(key) % table._entry_count;
+    size_t key_hash = hash_ptr(key);
+    size_t start_i = key_hash % table._entry_count;
     size_t i = start_i;
     bool replaced;
     while (1) {
@@ -104,7 +108,7 @@ bool ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* valu
         PtrHashTable new_table = {
             ._data = new_data,
             ._entry_count = new_entry_count,
-            ._len = table._len,
+            ._len = 0,
             ._value_size = table._value_size,
         };
 
@@ -127,4 +131,26 @@ bool ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* valu
     *p_table = table;
 
     return replaced;
+}
+
+PtrHashTableIt ptr_hash_table_it(PtrHashTable table) {
+    intptr_t const* keys = table._data;
+    return (PtrHashTableIt) {
+        ._keys = keys,
+        ._values = keys + table._entry_count,
+        ._i = 0,
+        ._entry_count = table._entry_count,
+        ._value_size = table._value_size,
+    };
+}
+
+void const* ptr_hash_table_it_next(PtrHashTableIt* it, OUT(intptr_t) key) {
+    for (; it->_i < it->_entry_count; it->_i++) {
+        if (it->_keys[it->_i]) {
+            size_t i = it->_i++;
+            if (key) *key = it->_keys[i];
+            return it->_values + i * it->_value_size;
+        }
+    }
+    return NULL;
 }

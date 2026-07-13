@@ -13,3 +13,5 @@ typedef struct AnBindingId {
     AnScopeId scope;
     uint32_t _index;
 } AnBindingId;
+
+typedef uint32_t AnCaptureId;

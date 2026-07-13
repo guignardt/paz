@@ -16,6 +16,7 @@
 #define DEBUG_LINE_INDICES  0
 #define DEBUG_TOKENS        0
 #define DEBUG_AST           1
+#define DEBUG_ANALYSIS      1
 
 int main(int argc, char const** argv) {
     set_reporter(default_reporter());
@@ -91,9 +92,21 @@ int main(int argc, char const** argv) {
     Analysis analysis = analysis_new();
 
     AnalyzeWalk walk = analyze_walk_init(&analysis);
-    analyze_walk_module(walk, program->root);
+    analyze_walk_const_module(walk, program->root);
 
-    analyze_constant_bindings(&analysis);
+#if DEBUG_ANALYSIS
+    eprintf("\n=== ANALYSIS ===\n");
+
+    eprintf("\n--- function ids ---\n");
+    intptr_t key;
+    AnFunctionId const* p_value;
+    for (
+        PtrHashTableIt it = ptr_hash_table_it(analysis.function_ids.table);
+        (p_value = ptr_hash_table_it_next(&it, &key));
+    ) {
+        eprintf("%p: %u\n", (void const*)key, (unsigned int)(*p_value));
+    }
+#endif
 
 parse_error_end:
     ast_storage_free(&ast_storage);

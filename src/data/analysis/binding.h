@@ -38,7 +38,9 @@ typedef struct AnBinding {
     union {
         AnConstant constant;
         AnVariable variable;
+        AnCaptureId id;
     } as;
+    AnTypeId type;
 } AnBinding;
 
 typedef struct AnScope {

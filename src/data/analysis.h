@@ -6,10 +6,6 @@
 #include "data/analysis/function.h"
 #include "data/analysis/binding.h"
 
-typedef struct AnExpressionTypes {
-    PtrHashTable table; // values are `AnTypeId`
-} AnExpressionTypes;
-
 typedef struct Analysis {
     AnFunctions functions;
     AnFunctionIds function_ids;
@@ -17,6 +13,8 @@ typedef struct Analysis {
     AnExpressionScopes expression_scopes;
     AnBindingIds binding_ids;
     AnConstantBindings constant_bindings;
+    AnExpressions expressions;
+    AnExpressionTypes expression_types;
 } Analysis;
 
 Analysis analysis_new(void);
