@@ -5,7 +5,6 @@
 #include "data/ast/identifier.h"
 #include "data/ast/pattern.h"
 #include "data/ast/storage.h"
-#include "data/ast/type_name.h"
 
 typedef struct AstModule {
     AstBinding* bindings;

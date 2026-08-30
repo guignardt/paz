@@ -21,8 +21,6 @@ Precedence unary_operator_precedence[] = {
 };
 
 Precedence binary_operator_precedence[] = {
-    [AST_OPERATOR_FOR] = PRECEDENCE_FOR,
-
     [AST_OPERATOR_CALL] = PRECEDENCE_CALL,
 
     [AST_OPERATOR_EQ] = PRECEDENCE_COMPARE,
@@ -50,7 +48,6 @@ typedef struct TokenOperatorEntry {
 TokenOperatorEntry token_operators[] = {
     [TOKEN_BREAK] =         { TOKEN_OPERATOR_ENTRY_PREFIX, AST_OPERATOR_BREAK },
     [TOKEN_CONTINUE] =      { TOKEN_OPERATOR_ENTRY_PREFIX, AST_OPERATOR_CONTINUE },
-    [TOKEN_FOR] =           { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_FOR },
 
     [TOKEN_EQUAL_EQUAL] =   { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_EQ },
     [TOKEN_BANG_EQUAL] =    { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_NE },

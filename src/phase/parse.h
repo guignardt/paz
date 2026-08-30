@@ -28,4 +28,3 @@ ParseStatus parse_module(Parser parser, OUT(AstModule*) dst);
 ParseStatus parse_binding(Parser parser, OUT(AstBinding*) dst);
 ParseStatus parse_pattern(Parser parser, OUT(AstPattern*) dst);
 ParseStatus parse_expression(Parser parser, OUT(AstExpression*) dst);
-ParseStatus parse_type_name(Parser parser, OUT(AstTypeName*) dst);

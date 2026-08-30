@@ -1,11 +1,10 @@
 #pragma once
 
 #include "data/ast/identifier.h"
-#include "data/ast/type_name.h"
 
 typedef struct AstPatternVariable {
     AstIdentifier identifier;
-    AstTypeName* type_name; // optional
+    struct AstExpression* type_name; // optional
 } AstPatternVariable;
 
 typedef enum AstPatternKind {

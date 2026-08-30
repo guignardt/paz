@@ -8,9 +8,13 @@ typedef struct AstBlock {
     struct AstExpression* tail; // optional
 } AstBlock;
 
+typedef struct AstReference {
+    AstIdentifier identifier;
+} AstReference;
+
 typedef struct AstFunction {
     AstPattern* input;
-    AstTypeName* output_type; // optional
+    struct AstExpression* output_type; // optional
     struct AstExpression* output;
 } AstFunction;
 
@@ -39,8 +43,6 @@ typedef enum AstBinaryOperator {
     AST_OPERATOR_MUL,
     AST_OPERATOR_DIV,
     AST_OPERATOR_REM,
-
-    AST_OPERATOR_FOR,
 } AstBinaryOperator;
 
 typedef struct AstBinaryOperation {
