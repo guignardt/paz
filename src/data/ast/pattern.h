@@ -4,7 +4,7 @@
 
 typedef struct AstPatternVariable {
     AstIdentifier identifier;
-    struct AstExpression* type_name; // optional
+    struct AstExpression* type_bound; // optional
 } AstPatternVariable;
 
 typedef enum AstPatternKind {

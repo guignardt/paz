@@ -91,8 +91,16 @@ int main(int argc, char const** argv) {
 
     Analysis analysis = analysis_new();
 
-    AnalyzeWalk walk = analyze_walk_init(&analysis);
-    analyze_walk_const_module(walk, program->root);
+    Analyzer w = analyzer_init(&analysis);
+    analyze_prepare_module(w, program->root);
+    if (report_count(SEVERITY_ERROR) > 0) {
+        goto analyze_error_end;
+    }
+    w = analyzer_init(&analysis);
+    analyze_const(w);
+    if (report_count(SEVERITY_ERROR) > 0) {
+        goto analyze_error_end;
+    }
 
 #if DEBUG_ANALYSIS
     eprintf("\n=== ANALYSIS ===\n");
@@ -108,6 +116,8 @@ int main(int argc, char const** argv) {
     }
 #endif
 
+analyze_error_end:
+    // TODO: free analyzer stuff
 parse_error_end:
     ast_storage_free(&ast_storage);
 tokenize_error_end:

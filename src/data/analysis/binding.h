@@ -4,24 +4,11 @@
 
 #include "data/ast.h"
 #include "data/analysis/id.h"
+#include "data/analysis/constant.h"
 #include "data/analysis/ptr_hash_table.h"
 
 #include "util/alloc.h"
 #include "util/string.h"
-
-typedef enum AnConstantKind {
-    AN_CONSTANT_INVALID,
-    AN_CONSTANT_TYPE,
-    AN_CONSTANT_FUNCTION,
-} AnConstantKind;
-
-typedef struct AnConstant {
-    AnConstantKind kind;
-    union {
-        AnTypeId type;
-        AnFunctionId function;
-    } as;
-} AnConstant;
 
 typedef struct AnVariable {
     Range registers; // range of `IrRegisterId`s
@@ -38,8 +25,8 @@ typedef struct AnBinding {
     union {
         AnConstant constant;
         AnVariable variable;
-        AnCaptureId id;
     } as;
+    AstBinding const* source_binding;
     AnTypeId type;
 } AnBinding;
 
@@ -62,12 +49,18 @@ AnBindingId an_push_binding(AnScopeBindings* bindings, AnScopeId scope, AnBindin
 AnBinding const* an_get_binding(AnScopeBindings bindings, AnBindingId id);
 AnBinding* an_get_binding_mut(AnScopeBindings* bindings, AnBindingId id);
 
-typedef struct AnExpressionScopes {
-    PtrHashTable table; // `AstExpression*` -> `AnScopeId`
-} AnExpressionScopes;
+int an_find_binding_in_scope(AnScopeBindings bindings, AnScopeId scope, String s, OUT(AnBindingId) id);
+int an_find_binding(AnScopeBindings bindings, AnScopeId scope, String s, OUT(AnBindingId) id);
+
+typedef struct AnReferenceScopes {
+    PtrHashTable table; // `AstExpression*` (of kind reference) -> `AnScopeId`
+} AnReferenceScopes;
 
 typedef struct AnBindingIds {
-    PtrHashTable table; // `AstPattern*` (of kind variable) -> `AnBindingId`
+    // `AstPattern*` (of kind variable)
+    // or `AstExpression` (of kind reference)
+    // -> `AnBindingId`
+    PtrHashTable table;
 } AnBindingIds;
 
 typedef struct AnConstantBindings {

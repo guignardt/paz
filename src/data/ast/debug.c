@@ -82,7 +82,7 @@ void debug_ast_expression(AstExpression const* p) {
             debug_attr_end();
 
             debug_attr_begin("output type");
-            debug_ast_type_name(v.as.function.output_type);
+            debug_ast_expression(v.as.function.output_type);
             debug_attr_end();
 
             debug_attr_begin("output");
@@ -162,23 +162,9 @@ void debug_ast_pattern(AstPattern const* p) {
             debug_attr_string("identifier", v.as.variable.identifier.string);
 
             debug_attr_begin("type name");
-            debug_ast_type_name(v.as.variable.type_name);
+            debug_ast_expression(v.as.variable.type_bound);
             debug_attr_end();
 
-            debug_end();
-            break;
-    }
-}
-
-void debug_ast_type_name(AstTypeName const* p) {
-    if (!p) return;
-    AstTypeName v = *p;
-
-    switch (v.kind) {
-        case AST_TYPE_NAME_REFERENCE:
-            debug_begin("reference type name");
-            debug_attr_ptr("addr", p);
-            debug_attr_string("reference", v.as.reference.identifier.string);
             debug_end();
             break;
     }

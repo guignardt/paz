@@ -59,7 +59,7 @@ ParseStatus parse_pattern(Parser p, OUT(AstPattern*) dst) {
         .kind = AST_PATTERN_VARIABLE,
         .as.variable = (AstPatternVariable) {
             .identifier = identifier,
-            .type_name = type_name,
+            .type_bound = type_name,
         },
     };
     AstPattern* ptr = ast_storage_alloc(p.storage, sizeof(AstPattern));

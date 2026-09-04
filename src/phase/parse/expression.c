@@ -340,7 +340,7 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
         Token arrow;
         if (!token_it_match_single(p.tokens, TOKEN_ARROW, &arrow)) {
             range.end = arrow.range.end;
-            if (parse_type_name(p, &v.output_type)) goto parse_function_continue_end;
+            if (parse_expression(p, &v.output_type)) goto parse_function_continue_end;
             if (v.output_type) range.end = v.output_type->range.end;
         }
     }

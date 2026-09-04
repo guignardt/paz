@@ -7,8 +7,6 @@
 
 typedef struct AnFunction {
     AstExpression const* expression;
-    AnBindingId* captured_bindings;
-    size_t captured_bindings_len;
 } AnFunction;
 
 typedef struct AnFunctions {

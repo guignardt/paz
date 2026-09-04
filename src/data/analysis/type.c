@@ -11,6 +11,7 @@ AnTypes an_types_new(void) {
 AnTypes an_types_default(void) {
     const AnType default_types[] = {
         { .kind = AN_TYPE_INVALID },
+        { .kind = AN_TYPE_TYPE },
         { .kind = AN_TYPE_INT },
     };
 
@@ -34,6 +35,7 @@ bool an_type_eq(AnType a, AnType b) {
     if (a.kind != b.kind) return false;
     switch (a.kind) {
         case AN_TYPE_INVALID:
+        case AN_TYPE_TYPE:
         case AN_TYPE_INT:
             return true;
         case AN_TYPE_FUNCTION:

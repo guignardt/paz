@@ -6,7 +6,8 @@
 
 typedef uint32_t AnTypeId;
 #define AN_TYPE_ID_INVALID 0
-#define AN_TYPE_ID_INT 1
+#define AN_TYPE_ID_TYPE 1
+#define AN_TYPE_ID_INT 2
 
 typedef struct AnFunctionType {
     AnTypeId input;
@@ -15,6 +16,7 @@ typedef struct AnFunctionType {
 
 typedef enum AnTypeKind {
     AN_TYPE_INVALID,
+    AN_TYPE_TYPE,
     AN_TYPE_INT,
     AN_TYPE_FUNCTION,
     AN_TYPE_FLOW,
