@@ -1,39 +1,50 @@
-SOURCE_DIR := src
-HEADER_DIR := src
-BUILD_DIR := build
-DEBUG_DIR := $(BUILD_DIR)/debug
-DEBUG_TARGET := $(DEBUG_DIR)/paz
-RELEASE_DIR := $(BUILD_DIR)/release
-RELEASE_TARGET := $(RELEASE_DIR)/paz
+# intended to be overriden to use release profile. For example:
+# `$ make lib PROFILE=release`
+PROFILE := debug
 
-CPPFLAGS := -I src/
 CFLAGS := -Wall -Wextra -Wno-sign-compare
-DEBUG_FLAGS := -g -fsanitize=address,undefined
-RELEASE_FLAGS := -O3
 
-HEADERS := $(shell find $(SOURCE_DIR) -type f -name "*.h")
-SOURCES := $(shell find $(SOURCE_DIR) -type f -name "*.c")
-DEBUG_OBJECTS := $(patsubst $(SOURCE_DIR)/%.c,$(DEBUG_DIR)/%.o,$(SOURCES))
-RELEASE_OBJECTS := $(patsubst $(SOURCE_DIR)/%.c,$(RELEASE_DIR)/%.o,$(SOURCES))
+ifeq ($(PROFILE),debug)
+CFLAGS += -g -fsanitize=address,undefined
+else ifeq ($(PROFILE),release)
+CFLAGS += -O3
+else
+$(error invalid profile, pick debug (default) or release)
+endif
+BUILD_DIR := build/$(PROFILE)
 
-.PHONY: debug
-debug: $(DEBUG_TARGET)
+SOURCES := $(shell find src -type f -name "*.c")
+OBJECTS := $(patsubst src/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
+SUBFILES := $(patsubst src/%.c,$(BUILD_DIR)/%.d,$(SOURCES))
 
-$(DEBUG_TARGET): $(DEBUG_OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(DEBUG_FLAGS) $^ -o $@
+.PHONY: lib
+lib: $(BUILD_DIR)/libpaz.a
 
-$(DEBUG_DIR)/%.o: $(SOURCE_DIR)/%.c $(HEADERS)
-	mkdir -p $(@D) && $(CC) -c $(CPPFLAGS) $(CFLAGS) $(DEBUG_FLAGS) $< -o $@
+$(BUILD_DIR)/libpaz.a $(BUILD_DIR)/lib/%.d: CPPFLAGS := -I src/lib
+$(BUILD_DIR)/libpaz.a: $(filter $(BUILD_DIR)/lib/%,$(OBJECTS))
+	$(AR) $(ARFLAGS) $@ $^
 
-.PHONY: release
-release: $(RELEASE_TARGET)
+.PHONY: app
+app: $(BUILD_DIR)/paz
 
-$(RELEASE_TARGET): $(RELEASE_OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(RELEASE_FLAGS) $^ -o $@
+$(BUILD_DIR)/paz $(BUILD_DIR)/app/%.d: CPPFLAGS := -I src/lib -I src/app
+$(BUILD_DIR)/paz: $(BUILD_DIR)/libpaz.a $(filter $(BUILD_DIR)/app/%,$(OBJECTS))
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
-$(RELEASE_DIR)/%.o: $(SOURCE_DIR)/%.c $(HEADERS)
-	mkdir -p $(@D) && $(CC) -c $(CPPFLAGS) $(CFLAGS) $(RELEASE_FLAGS) $< -o $@
+.PHONY: test
+test: $(BUILD_DIR)/testpaz
 
-.PHONY: clean
-clean:
-	rm -rf build/
+$(BUILD_DIR)/testpaz $(BUILD_DIR)/test/%.d: CPPFLAGS := -I src/lib -I src/test
+$(BUILD_DIR)/testpaz: $(BUILD_DIR)/libpaz.a $(filter $(BUILD_DIR)/test/%,$(OBJECTS))
+	$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+
+.PHONY: test_run
+test_run: test
+	$(BUILD_DIR)/testpaz
+
+$(BUILD_DIR)/%.d: src/%.c
+	mkdir -p $(@D)
+	$(CC) $(CPPFLAGS) -MM $< -MT $(patsubst %.d,%.o,$@) -o $@
+	echo '	$$(CC) -c $$(CPPFLAGS) $$(CFLAGS) $$< -o $$@' >> $@
+
+include $(SUBFILES)

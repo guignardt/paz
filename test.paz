@@ -4,7 +4,3 @@ const main = fn (a: Int) -> Int => (
 );
 
 const foo = fn (a: Int) -> Int => (a);
-const foo = fn (a: Int) -> Int => (a);
-const foo = fn (a: Int) -> Int => (a);
-const foo = fn (a: Int) -> Int => (a);
-const foo = fn (a: Int) -> Int => (a);

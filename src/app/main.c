@@ -114,6 +114,8 @@ int main(int argc, char const** argv) {
     ) {
         eprintf("%p: %u\n", (void const*)key, (unsigned int)(*p_value));
     }
+
+    eprintf("\n--- constant bindings ---\n");
 #endif
 
 analyze_error_end:
