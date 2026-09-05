@@ -17,6 +17,7 @@ typedef struct Analysis {
     AnExpressions expressions;
     AnConstants constants;
     AnConstantItems constant_items;
+    AnTypes types;
     AnExpressionTypes expression_types;
 } Analysis;
 

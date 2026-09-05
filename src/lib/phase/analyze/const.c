@@ -87,6 +87,7 @@ static int sort_constant_items(
         ptr_hash_table_insert(&visited, constant_item_key(item), &unvisited);
     }
 
+    int r = 0;
     OUT(AnConstantItem) next_item = dst + items.len;
     for (size_t i = 0; i < items.len; i++) {
         AnConstantItem item = items.data[i];
@@ -96,13 +97,11 @@ static int sort_constant_items(
         ) {
             continue;
         }
-        if (sort_constant_items_visit(item, &visited, a, &next_item)) {
-            return -1;
-        }
+        r |= sort_constant_items_visit(item, &visited, a, &next_item);
     }
 
     ptr_hash_table_free(&visited);
-    return 0;
+    return r;
 }
 
 static int sort_constant_items_visit(
@@ -111,7 +110,7 @@ static int sort_constant_items_visit(
     Analysis* a,
     OUT(AnConstantItem)* dst
 ) {
-    Mark* mark = ptr_hash_table_get_mut(visited, constant_item_key(item));
+    uint8_t* mark = ptr_hash_table_get_mut(visited, constant_item_key(item));
 
     if (*mark == MARK_PERMANENT) return 0;
     if (*mark == MARK_TEMPORARY) {
@@ -123,14 +122,14 @@ static int sort_constant_items_visit(
 
     *mark = MARK_TEMPORARY;
 
-    sort_constant_items_visit_deps(item, visited, a, dst);
+    int r = sort_constant_items_visit_deps(item, visited, a, dst);
 
     *mark = MARK_PERMANENT;
 
     OUT(AnConstantItem) item_dst = --(*dst);
     *item_dst = item;
 
-    return 0;
+    return r;
 }
 
 static int sort_constant_items_visit_deps(
@@ -182,17 +181,17 @@ static int sort_constant_items_visit_deps_expression(
             ptr_hash_table_insert(&a->binding_ids.table, (intptr_t)v, &binding_id);
 
             binding = *an_get_binding(a->scope_bindings, binding_id);
-            item = (AnConstantItem) { .kind = AN_CONSTANT_ITEM_BINDING, .as.binding = binding.source_binding };
-            r |= sort_constant_items_visit(item, visited, a, dst);
+            // the following condition can be false only if the binding is built-in
+            // in that case, we don't need to process it as a constant item since its value
+            // is already known
+            if (binding.source_binding) {
+                item = (AnConstantItem) { .kind = AN_CONSTANT_ITEM_BINDING, .as.binding = binding.source_binding };
+                r |= sort_constant_items_visit(item, visited, a, dst);
+            }
 
             break;
 
         case AST_EXPRESSION_FUNCTION:
-            r |= sort_constant_items_visit_deps_pattern(v->as.function.input, visited, a, dst);
-            if (v->as.function.output_type) {
-                r |= sort_constant_items_visit_deps_expression(v->as.function.output_type, visited, a, dst);
-            }
-            r |= sort_constant_items_visit_deps_expression(v->as.function.output, visited, a, dst);
             break;
 
         case AST_EXPRESSION_UNARY_OPERATION:
@@ -309,7 +308,8 @@ static void match_constant_to_pattern(AnConstant c, AstPattern const* p, Analysi
             };
 
             if (p->as.variable.type_bound) {
-                type_bound_value = evaluate_expression(p->as.variable.type_bound, *a);
+                type_bound_value = *(AnConstant const*)
+                    ptr_hash_table_get(a->constants.table, (intptr_t)p->as.variable.type_bound);
                 if (type_bound_value.kind != AN_CONSTANT_TYPE) {
                     report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
                     report_message("invalid type bound: bound value didn't evaluate to a type");

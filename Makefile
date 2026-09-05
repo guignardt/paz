@@ -3,6 +3,7 @@
 PROFILE := debug
 
 CFLAGS := -Wall -Wextra -Wno-sign-compare
+ARFLAGS := rcs
 
 ifeq ($(PROFILE),debug)
 CFLAGS += -g -fsanitize=address,undefined

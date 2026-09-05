@@ -11,6 +11,7 @@ Analysis analysis_new(void) {
         .expressions = { .data = NULL, .len = 0, ._capacity = 0 },
         .constants = { .table = ptr_hash_table_new(sizeof(AnConstant)) },
         .constant_items = { .data = NULL, .len = 0, ._capacity = 0 },
+        .types = an_types_default(),
         .expression_types = { .table = ptr_hash_table_new(sizeof(AnTypeId)) },
     };
 }
