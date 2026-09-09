@@ -7,6 +7,7 @@
 
 typedef struct AnFunction {
     AstExpression const* expression;
+    uint32_t stack_space;
 } AnFunction;
 
 typedef struct AnFunctions {

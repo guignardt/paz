@@ -56,7 +56,9 @@ static intptr_t constant_item_key(AnConstantItem item);
 
 static void evaluate_constant_item(AnConstantItem item, Analysis* a);
 
-static AnConstant evaluate_expression(AstExpression const* v, Analysis a);
+static AnConstant evaluate_expression(AstExpression const* v, Analysis* a);
+
+static AnTypeId pattern_explicit_type(AstPattern const* p, Analysis* a);
 
 static void match_constant_to_pattern(AnConstant c, AstPattern const* p, Analysis* a);
 
@@ -192,6 +194,10 @@ static int sort_constant_items_visit_deps_expression(
             break;
 
         case AST_EXPRESSION_FUNCTION:
+            r |= sort_constant_items_visit_deps_pattern(v->as.function.input, visited, a, dst);
+            if (v->as.function.output_type) {
+                r |= sort_constant_items_visit_deps_expression(v->as.function.output_type, visited, a, dst);
+            }
             break;
 
         case AST_EXPRESSION_UNARY_OPERATION:
@@ -256,33 +262,64 @@ static void evaluate_constant_item(AnConstantItem item, Analysis* a) {
     AnConstant value;
     switch (item.kind) {
         case AN_CONSTANT_ITEM_EXPRESSION:
-            value = evaluate_expression(item.as.expression, *a);
+            value = evaluate_expression(item.as.expression, a);
             ptr_hash_table_insert(&a->constants.table, (intptr_t)item.as.expression, &value);
             break;
         
         case AN_CONSTANT_ITEM_BINDING:
-            value = evaluate_expression(item.as.binding->value, *a);
+            value = evaluate_expression(item.as.binding->value, a);
             match_constant_to_pattern(value, item.as.binding->pattern, a);
             break;
     }
 }
 
-static AnConstant evaluate_expression(AstExpression const* v, Analysis a) {
+static AnConstant evaluate_expression(AstExpression const* v, Analysis* a) {
     AnBindingId binding_id;
     AnBinding binding;
+    AnTypeId input_type;
+    AnConstant output_type_value;
+    AnTypeId output_type;
     AnFunctionId function_id;
+    AnType type;
+    AnTypeId type_id;
     switch (v->kind) {
         case AST_EXPRESSION_REFERENCE:
-            binding_id = *(AnBindingId const*)ptr_hash_table_get(a.binding_ids.table, (intptr_t)v);
-            binding = *an_get_binding(a.scope_bindings, binding_id);
+            binding_id = *(AnBindingId const*)ptr_hash_table_get(a->binding_ids.table, (intptr_t)v);
+            binding = *an_get_binding(a->scope_bindings, binding_id);
             assert(binding.kind == AN_BINDING_CONSTANT);
             return binding.as.constant;
 
         case AST_EXPRESSION_FUNCTION:
-            function_id = *(AnFunctionId const*)ptr_hash_table_get(a.function_ids.table, (intptr_t)v);
+            input_type = pattern_explicit_type(v->as.function.input, a);
+            if (!v->as.function.output_type) {
+                report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                report_message("missing output type bound in function");
+                report_end();
+                output_type = AN_TYPE_INVALID;
+            } else {
+                output_type_value = evaluate_expression(v->as.function.output_type, a);
+                if (output_type_value.kind != AN_CONSTANT_TYPE) {
+                    report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                    report_message("type bound didn't evaluate to type");
+                    report_end();
+                    output_type = AN_TYPE_INVALID;
+                } else {
+                    output_type = output_type_value.as.type;
+                }
+            }
+
+            type = (AnType) {
+                .kind = AN_TYPE_FUNCTION,
+                .as.function = (AnFunctionType) { .input = input_type, .output = output_type },
+                .size = 1, // TODO: function capture data
+            };
+            type_id = an_types_get_id_or_insert(&a->types, type);
+
+            function_id = *(AnFunctionId const*)ptr_hash_table_get(a->function_ids.table, (intptr_t)v);
             return (AnConstant) {
                 .kind = AN_CONSTANT_FUNCTION,
                 .as.function = function_id,
+                .type = type_id,
             };
 
         default:
@@ -290,6 +327,27 @@ static AnConstant evaluate_expression(AstExpression const* v, Analysis a) {
             report_message("invalid constant expression");
             report_end();
             return (AnConstant) { .kind = AN_CONSTANT_INVALID, .type = AN_TYPE_INVALID };
+    }
+}
+
+static AnTypeId pattern_explicit_type(AstPattern const* p, Analysis* a) {
+    AnConstant type_value;
+    switch (p->kind) {
+        case AST_PATTERN_VARIABLE:
+            if (!p->as.variable.type_bound) {
+                report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                report_message("missing type bound in fully bound pattern");
+                report_end();
+                return AN_TYPE_ID_INVALID;
+            }
+            type_value = evaluate_expression(p->as.variable.type_bound, a);
+            if (type_value.kind != AN_TYPE_ID_TYPE) {
+                report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                report_message("type bound didn't evaluate to type");
+                report_end();
+                return AN_TYPE_ID_INVALID;
+            }
+            return type_value.as.type;
     }
 }
 

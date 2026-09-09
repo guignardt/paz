@@ -19,15 +19,14 @@ typedef enum AnTypeKind {
     AN_TYPE_TYPE,
     AN_TYPE_INT,
     AN_TYPE_FUNCTION,
-    AN_TYPE_FLOW,
 } AnTypeKind;
 
 typedef struct AnType {
     AnTypeKind kind;
     union {
         AnFunctionType function;
-        AnTypeId flow;
     } as;
+    uint32_t size;
 } AnType;
 
 typedef struct AnTypes {
