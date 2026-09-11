@@ -1,24 +1,20 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "data/analysis.h"
+#include "data/analysis/id_hash_table.h"
 
-size_t hash_ptr(size_t key) {
+uint32_t hash_id(uint32_t x) {
     // FIXME: better hash function?
 
-    // based on https://gist.github.com/badboy/6267743.
-    key = (~key) + (key << 21);
-    key = key ^ (key >> 24);
-    key = (key + (key << 3)) + (key << 8);
-    key = key ^ (key >> 14);
-    key = (key + (key << 2)) + (key << 4);
-    key = key ^ (key >> 28);
-    key = key + (key << 31);
-    return key;
+    // https://stackoverflow.com/questions/664014/what-integer-hash-function-are-good-that-accepts-an-integer-hash-key
+    x = ((x >> 16) ^ x) * 0x45d9f3bu;
+    x = ((x >> 16) ^ x) * 0x45d9f3bu;
+    x = (x >> 16) ^ x;
+    return x;
 }
 
-PtrHashTable ptr_hash_table_new(size_t value_size) {
-    return (PtrHashTable) {
+IdHashTable id_hash_table_new(size_t value_size) {
+    return (IdHashTable) {
         ._data = NULL,
         ._entry_count = 0,
         ._len = 0,
@@ -26,25 +22,25 @@ PtrHashTable ptr_hash_table_new(size_t value_size) {
     };
 }
 
-void ptr_hash_table_free(OWNED(PtrHashTable) table) {
+void id_hash_table_free(OWNED(IdHashTable) table) {
     free(table->_data);
 }
 
-void const* ptr_hash_table_get(PtrHashTable table, intptr_t key) {
+void const* id_hash_table_get(IdHashTable table, Id key) {
     return ptr_hash_table_get_mut(&table, key);
 }
 
-void* ptr_hash_table_get_mut(PtrHashTable* p_table, intptr_t key) {
-    PtrHashTable table = *p_table;
+void* ptr_hash_table_get_mut(IdHashTable* p_table, Id key) {
+    IdHashTable table = *p_table;
 
     if (table._entry_count == 0) return NULL;
 
-    intptr_t* keys = table._data;
-    size_t start_i = hash_ptr(key) % table._entry_count;
+    Id* keys = table._data;
+    size_t start_i = hash_id(key) % table._entry_count;
     size_t i = start_i;
     while (1) {
-        intptr_t entry_key = keys[i];
-        if (!entry_key) {
+        Id entry_key = keys[i];
+        if (entry_key == ID_SENTINEL) {
             return NULL;
         }
         if (entry_key == key) {
@@ -60,18 +56,18 @@ void* ptr_hash_table_get_mut(PtrHashTable* p_table, intptr_t key) {
 }
 
 // assumes the hash map contains a vacant entry
-bool ptr_hash_table_insert_vacant(PtrHashTable* p_table, intptr_t key, void const* value) {
-    PtrHashTable table = *p_table;
+bool ptr_hash_table_insert_vacant(IdHashTable* p_table, Id key, void const* value) {
+    IdHashTable table = *p_table;
 
-    intptr_t* keys = table._data;
+    Id* keys = table._data;
 
-    size_t key_hash = hash_ptr(key);
+    size_t key_hash = hash_id(key);
     size_t start_i = key_hash % table._entry_count;
     size_t i = start_i;
     bool replaced;
     while (1) {
-        intptr_t* entry_key = &keys[i];
-        if (!*entry_key) {
+        Id* entry_key = &keys[i];
+        if (*entry_key == ID_SENTINEL) {
             *entry_key = key;
             table._len++;
             replaced = false;
@@ -98,32 +94,32 @@ bool ptr_hash_table_insert_vacant(PtrHashTable* p_table, intptr_t key, void cons
 
 #define MAX_LOAD_FACTOR 0.75
 
-bool ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* value) {
-    PtrHashTable table = *p_table;
+bool ptr_hash_table_insert(IdHashTable* p_table, Id key, void const* value) {
+    IdHashTable table = *p_table;
     
     // we first resize if needed, ensuring there is room
     if (table._len >= MAX_LOAD_FACTOR * table._entry_count) {
         size_t new_entry_count = (table._entry_count <= 2) ? 4 : (2 * table._entry_count);
-        void* new_data = alloc_or_exit(new_entry_count * (sizeof(intptr_t) + table._value_size));
-        memset(new_data, 0, new_entry_count * sizeof(intptr_t));
-        PtrHashTable new_table = {
+        void* new_data = alloc_or_exit(new_entry_count * (sizeof(Id) + table._value_size));
+        memset(new_data, 0, new_entry_count * sizeof(Id));
+        IdHashTable new_table = {
             ._data = new_data,
             ._entry_count = new_entry_count,
             ._len = 0,
             ._value_size = table._value_size,
         };
 
-        intptr_t const* keys = table._data;
+        Id const* keys = table._data;
 
         void const* values = keys + table._entry_count;
         for (size_t i = 0; i < table._entry_count; i++) {
-            intptr_t key = keys[i];
-            if (!key) continue;
+            Id key = keys[i];
+            if (key == ID_SENTINEL) continue;
             void const* value = values + i * table._value_size;
             ptr_hash_table_insert_vacant(&new_table, key, value);
         }
 
-        ptr_hash_table_free(&table);
+        id_hash_table_free(&table);
         table = new_table;
     }
 
@@ -134,9 +130,9 @@ bool ptr_hash_table_insert(PtrHashTable* p_table, intptr_t key, void const* valu
     return replaced;
 }
 
-PtrHashTableIt ptr_hash_table_it(PtrHashTable table) {
-    intptr_t const* keys = table._data;
-    return (PtrHashTableIt) {
+IdHashTableIt id_hash_table_it(IdHashTable table) {
+    Id const* keys = table._data;
+    return (IdHashTableIt) {
         ._keys = keys,
         ._values = keys + table._entry_count,
         ._i = 0,
@@ -145,7 +141,7 @@ PtrHashTableIt ptr_hash_table_it(PtrHashTable table) {
     };
 }
 
-void const* ptr_hash_table_it_next(PtrHashTableIt* it, OUT(intptr_t) key) {
+void const* id_hash_table_it_next(IdHashTableIt* it, OUT(Id) key) {
     for (; it->_i < it->_entry_count; it->_i++) {
         if (it->_keys[it->_i]) {
             size_t i = it->_i++;

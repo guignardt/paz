@@ -5,7 +5,7 @@
 #include "data/ast.h"
 #include "data/analysis/id.h"
 #include "data/analysis/constant.h"
-#include "data/analysis/ptr_hash_table.h"
+#include "data/analysis/id_hash_table.h"
 
 #include "util/alloc.h"
 #include "util/string.h"
@@ -26,7 +26,7 @@ typedef struct AnBinding {
         AnConstant constant;
         AnVariable variable;
     } as;
-    AstBinding const* source_binding;
+    AstBindingSetId source_binding_set;
     AnTypeId type;
 } AnBinding;
 
@@ -53,20 +53,20 @@ int an_find_binding_in_scope(AnScopeBindings bindings, AnScopeId scope, String s
 int an_find_binding(AnScopeBindings bindings, AnScopeId scope, String s, OUT(AnBindingId) id);
 
 typedef struct AnReferenceScopes {
-    PtrHashTable table; // `AstExpression*` (of kind reference) -> `AnScopeId`
+    IdHashTable table; // expression -> `AnScopeId`
 } AnReferenceScopes;
 
 typedef struct AnBindingIds {
-    // `AstPattern*` (of kind variable)
-    // or `AstExpression` (of kind reference)
+    // pattern (of kind variable)
+    // or expression (of kind reference)
     // -> `AnBindingId`
-    PtrHashTable table;
+    IdHashTable table;
 } AnBindingIds;
 
 typedef struct AnConstantBindings {
-    BOXED(AstBinding const*) data;
+    BOXED(AstBindingSet const*) data;
     size_t len;
     size_t _capacity;
 } AnConstantBindings;
 
-void an_register_constant_binding(AnConstantBindings* bindings, AstBinding const* v);
+void an_register_constant_binding(AnConstantBindings* bindings, AstBindingSet const* v);

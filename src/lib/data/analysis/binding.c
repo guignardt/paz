@@ -23,7 +23,7 @@ AnBindingId an_push_binding(AnScopeBindings* bindings, AnScopeId scope_id, AnBin
     return (AnBindingId) { .scope = scope_id, ._index = index };
 }
 
-void an_register_constant_binding(AnConstantBindings* bindings, AstBinding const* v) {
+void an_register_constant_binding(AnConstantBindings* bindings, AstBindingSet const* v) {
     reserve(ERASE2(&bindings->data), &bindings->_capacity, bindings->len + 1, sizeof(v));
     bindings->data[bindings->len++] = v;
 }

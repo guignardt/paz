@@ -1,35 +1,28 @@
 #include "phase/parse.h"
 
-ParseStatus parse_program(Parser p, OUT(AstProgram*) dst) {
-    AstProgram v;
-    ParseStatus status = parse_module(p, &v.root);
-    AstProgram* ptr = ast_storage_alloc(p.storage, sizeof(AstProgram));
-    *ptr = v;
-    if (dst) *dst = ptr;
-    return status;
-}
-
-ParseStatus parse_module(Parser p, OUT(AstModule*) dst) {
-    AstModule v = { .bindings = NULL };
-    AstBinding** write_next = &v.bindings;
+ParseStatus parse_module(Parser p, OUT(AstModule) dst) {
+    AstModule v = { .binding_sets = ID_SENTINEL };
+    AstBindingSetId previous = ID_SENTINEL;
     while (true) {
         while (!token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {}
         if (token_it_end(*p.tokens)) {
             break;
         }
 
-        AstBinding* binding;
-        if (parse_binding(p, &binding)) {
+        AstBindingSetId binding;
+        if (parse_binding_set(p, &binding)) {
             token_it_find_single(p.tokens, TOKEN_SEMICOLON, NULL);
         }
-        if (binding) {
-            *write_next = binding;
-            write_next = &binding->next;
+        if (binding != ID_SENTINEL) {
+            if (previous == ID_SENTINEL) {
+                v.binding_sets = binding;
+            } else {
+                p.nodes->binding_sets[previous].next = binding;
+            }
         }
+        previous = binding;
     }
 
-    AstModule* ptr = ast_storage_alloc(p.storage, sizeof(AstModule));
-    *ptr = v;
-    if (dst) *dst = ptr;
+    *dst = v;
     return PARSE_OK;
 }

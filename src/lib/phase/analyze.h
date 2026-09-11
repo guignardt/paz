@@ -16,14 +16,14 @@ typedef struct Analyzer {
     Analysis* analysis;
     AnScopeId _scope;
     AnBindingKind _binding_kind;
-    AstBinding const* _binding;
+    AstBindingSetId _binding;
 } Analyzer;
 
 Analyzer analyzer_init(Analysis* analysis);
 
-void analyze_prepare_module(Analyzer w, AstModule const* v);
-void analyze_prepare_expression(Analyzer w, AstExpression const* v, bool explicitly_constant);
-void analyze_prepare_pattern(Analyzer w, AstPattern const* v);
-void analyze_prepare_binding(Analyzer w, AstBinding const* v);
+void analyze_prepare_module(Analyzer w, AstModuleView v);
+void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly_constant);
+void analyze_prepare_pattern(Analyzer w, AstPatternView v);
+void analyze_prepare_binding_set(Analyzer w, AstBindingSetView v);
 
-void analyze_const(Analyzer w);
+void analyze_const(Analyzer w, AstNodes nodes);

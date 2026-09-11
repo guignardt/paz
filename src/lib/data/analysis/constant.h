@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #include "data/analysis/function.h"
-#include "data/analysis/ptr_hash_table.h"
+#include "data/analysis/id_hash_table.h"
 
 typedef enum AnConstantKind {
     AN_CONSTANT_INVALID,
@@ -21,7 +21,7 @@ typedef struct AnConstant {
 } AnConstant;
 
 typedef struct AnConstants {
-    PtrHashTable table; // `AstExpression*` -> `AnConstant`
+    IdHashTable table; // expression -> `AnConstant`
 } AnConstants;
 
 typedef enum AnConstantItemKind {
@@ -31,10 +31,7 @@ typedef enum AnConstantItemKind {
 
 typedef struct AnConstantItem {
     AnConstantItemKind kind;
-    union {
-        AstExpression const* expression;
-        AstBinding const* binding;
-    } as;
+    uint32_t id; // `AstExpressionId` or `AstBindingSetId`
 } AnConstantItem;
 
 typedef struct AnConstantItems {

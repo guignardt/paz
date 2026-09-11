@@ -16,15 +16,15 @@ typedef enum ParseStatus {
 typedef struct Parser {
     char const* text;
     TokenIt* tokens;
-    AstStorage* storage;
+    // AstStorage* storage;
+    AstNodes* nodes;
 } Parser;
 
 // valid tokens must be passed to parsing functions: for example, the text of
 // a `TOKEN_INT` must be of the correct form (an optional sign followed by
 // decimal digits).
 
-ParseStatus parse_program(Parser parser, OUT(AstProgram*) dst);
-ParseStatus parse_module(Parser parser, OUT(AstModule*) dst);
-ParseStatus parse_binding(Parser parser, OUT(AstBinding*) dst);
-ParseStatus parse_pattern(Parser parser, OUT(AstPattern*) dst);
-ParseStatus parse_expression(Parser parser, OUT(AstExpression*) dst);
+ParseStatus parse_module(Parser parser, OUT(AstModule) dst);
+ParseStatus parse_binding_set(Parser parser, OUT(AstBindingSetId) dst);
+ParseStatus parse_pattern(Parser parser, OUT(AstPatternId) dst);
+ParseStatus parse_expression(Parser parser, OUT(AstExpressionId) dst);

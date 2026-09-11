@@ -1,18 +1,18 @@
 #pragma once
 
-#include "data/ast/binding.h"
+#include "data/ast/binding_set.h"
 #include "data/ast/expression.h"
 #include "data/ast/identifier.h"
 #include "data/ast/pattern.h"
 #include "data/ast/storage.h"
 
 typedef struct AstModule {
-    AstBinding* bindings;
+    AstBindingSetId binding_sets; // list
 } AstModule;
 
-typedef struct AstProgram {
-    AstModule* root;
-} AstProgram;
+typedef struct AstModuleView {
+    AstModule const* data;
+    AstNodes nodes;
+} AstModuleView;
 
-void debug_ast_module(AstModule const* v);
-void debug_ast_program(AstProgram const* v);
+void debug_ast_module(AstModuleView v);

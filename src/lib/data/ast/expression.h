@@ -1,11 +1,11 @@
 #pragma once
 
+#include "data/ast/nodes.h"
 #include "data/ast/identifier.h"
-#include "data/ast/pattern.h"
 
 typedef struct AstBlock {
-    struct AstBinding* bindings; // list
-    struct AstExpression* tail; // optional
+    AstBindingSetId binding_sets; // list
+    AstExpressionId tail; // optional
 } AstBlock;
 
 typedef struct AstReference {
@@ -13,9 +13,9 @@ typedef struct AstReference {
 } AstReference;
 
 typedef struct AstFunction {
-    AstPattern* input;
-    struct AstExpression* output_type; // optional
-    struct AstExpression* output;
+    AstPatternId input;
+    AstExpressionId output_type; // optional
+    AstExpressionId output;
 } AstFunction;
 
 typedef enum AstUnaryOperator {
@@ -25,7 +25,7 @@ typedef enum AstUnaryOperator {
 
 typedef struct AstUnaryOperation {
     AstUnaryOperator operator;
-    struct AstExpression* operand;
+    AstExpressionId operand;
 } AstUnaryOperation;
 
 typedef enum AstBinaryOperator {
@@ -47,14 +47,14 @@ typedef enum AstBinaryOperator {
 
 typedef struct AstBinaryOperation {
     AstBinaryOperator operator;
-    struct AstExpression* lhs;
-    struct AstExpression* rhs;
+    AstExpressionId lhs;
+    AstExpressionId rhs;
 } AstBinaryOperation;
 
 typedef struct AstConditional {
-    struct AstExpression* condition;
-    struct AstExpression* if_true;
-    struct AstExpression* if_false;
+    AstExpressionId condition;
+    AstExpressionId if_true;
+    AstExpressionId if_false;
 } AstConditional;
 
 typedef enum AstExpressionKind {
@@ -69,7 +69,7 @@ typedef enum AstExpressionKind {
 
 typedef struct AstExpression {
     // node
-    struct AstExpression* next;
+    AstExpressionId next;
     Range range;
 
     AstExpressionKind kind;
@@ -84,16 +84,20 @@ typedef struct AstExpression {
     } as;
 } AstExpression;
 
-typedef struct AstExpressionVisitor {
-    void(*block)            (AstBlock const* v,             void* data);
-    void(*reference)        (AstReference const* v,         void* data);
-    void(*function)         (AstFunction const* v,          void* data);
-    void(*unary_operation)  (AstUnaryOperation const* v,    void* data);
-    void(*binary_operation) (AstBinaryOperation const* v,   void* data);
-    void(*conditional)      (AstConditional const* v,       void* data);
-    void(*literal_int)      (int64_t const* v,              void* data);
-} AstExpressionVisitor;
+typedef struct AstExpressionView {
+    AstExpression const* data;
+    AstExpressionId id;
+    AstNodes nodes;
+} AstExpressionView;
 
-void ast_expression_visit(AstExpression const* v, AstExpressionVisitor visitor, void* data);
+#define AST_VIEW_EXPRESSION(n, i)                                   \
+    ((AstExpressionView) {                                          \
+        .data = ((i) == ID_SENTINEL ? NULL : &(n).expressions[i]),  \
+        .id = (i),                                                  \
+        .nodes = (n),                                               \
+    })
 
-void debug_ast_expression(AstExpression const* v);
+#define AST_VIEW_CHILD_EXPRESSION(v, f)                             \
+    AST_VIEW_EXPRESSION((v).nodes, (*v.data)f)
+
+void debug_ast_expression(AstExpressionView v);

@@ -6,7 +6,7 @@
 #include "data/analysis/id.h"
 
 typedef struct AnFunction {
-    AstExpression const* expression;
+    AstExpressionId expression;
     uint32_t stack_space;
 } AnFunction;
 
@@ -17,7 +17,7 @@ typedef struct AnFunctions {
 } AnFunctions;
 
 typedef struct AnFunctionIds {
-    PtrHashTable table; // `AstExpression*` (of kind function) -> `AnFunctionId`
+    IdHashTable table; // `AstExpression*` (of kind function) -> `AnFunctionId`
 } AnFunctionIds;
 
 AnFunctionId an_functions_register(AnFunctions* nodes, AnFunction v);

@@ -65,30 +65,30 @@ TokenOperatorEntry token_operators[] = {
     [TOKEN_IDENTIFIER] = {0} // ensure every token kind has a slot
 };
 
-static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpression*) dst);
-static ParseStatus parse_expression_primary(Parser p, OUT(AstExpression*) dst);
+static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpressionId) dst);
+static ParseStatus parse_expression_primary(Parser p, OUT(AstExpressionId) dst);
 // only returns `PARSE_OK` or `PARSE_ILL`
 static ParseStatus parse_expression_try_continue(
-    Parser p, Precedence prec, AstExpression* lhs, OUT(AstExpression*) dst, OUT(bool) parsed
+    Parser p, Precedence prec, AstExpressionId lhs, OUT(AstExpressionId) dst, OUT(bool) parsed
 );
 
 // takes in the contents of the parenthesized expression
-static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpression*) dst);
-static void ast_ref_new(Parser p, Range identifier, OUT(AstExpression*) dst);
+static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressionId) dst);
+static void ast_ref_new(Parser p, Range identifier, OUT(AstExpressionId) dst);
 // assumes the head `fn` token has already been consumed
-static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpression*) dst);
+static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpressionId) dst);
 // assumes the head `if` token has already been consumed
-static ParseStatus parse_conditonal_continue(Parser p, Range if_range, OUT(AstExpression*) dst);
+static ParseStatus parse_conditonal_continue(Parser p, Range if_range, OUT(AstExpressionId) dst);
 // doesn't actually read from the parser
-static ParseStatus parse_int(Parser p, Token token, OUT(AstExpression*) dst);
+static ParseStatus parse_int(Parser p, Token token, OUT(AstExpressionId) dst);
 
-ParseStatus parse_expression(Parser p, OUT(AstExpression*) dst) {
+ParseStatus parse_expression(Parser p, OUT(AstExpressionId) dst) {
     return parse_expression_prec(p, PRECEDENCE_NONE, dst);
 }
 
-static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpression*) dst) {
+static ParseStatus parse_expression_prec(Parser p, Precedence prec, OUT(AstExpressionId) dst) {
     ParseStatus status = PARSE_ILL;
-    AstExpression* expr;
+    AstExpressionId expr;
     
     // parse head
     if (parse_expression_primary(p, &expr)) goto parse_expression_end;
@@ -110,11 +110,11 @@ parse_expression_end:
     return status;
 }
 
-static ParseStatus parse_expression_primary(Parser p, OUT(AstExpression*) dst) {
+static ParseStatus parse_expression_primary(Parser p, OUT(AstExpressionId) dst) {
     TokenTree head;
     if (token_it_next(p.tokens, &head)) {
         unexpected_token();
-        if (dst) *dst = NULL;
+        if (dst) *dst = ID_SENTINEL;
         return PARSE_ILL;
     }
 
@@ -126,7 +126,7 @@ static ParseStatus parse_expression_primary(Parser p, OUT(AstExpression*) dst) {
                     Parser p2 = {
                         .text = p.text,
                         .tokens = &contents,
-                        .storage = p.storage,
+                        .nodes = p.nodes,
                     };
                     return parse_expression_paren(
                         p2,
@@ -139,22 +139,21 @@ static ParseStatus parse_expression_primary(Parser p, OUT(AstExpression*) dst) {
             TokenOperatorEntry operator_entry = token_operators[head.as.single.kind];
             if (operator_entry.flags & TOKEN_OPERATOR_ENTRY_PREFIX) {
                 Precedence prec = unary_operator_precedence[operator_entry.operator];
-                AstExpression* operand;
+                AstExpressionId operand;
                 ParseStatus status = parse_expression_prec(p, prec, &operand);
-                AstExpression* p_operand = NULL;
+                AstExpressionId operand_id = ID_SENTINEL;
                 Range range = head.as.single.range;
                 AstExpression v = {
-                    .next = NULL,
+                    .next = ID_SENTINEL,
                     .range = range,
                     .kind = AST_EXPRESSION_UNARY_OPERATION,
                     .as.unary_operation = (AstUnaryOperation) {
                         .operator = operator_entry.operator,
-                        .operand = p_operand,
+                        .operand = operand_id,
                     },
                 };
-                AstExpression* ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-                *ptr = v;
-                if (dst) *dst = ptr;
+                AstExpressionId id = box_expression(p, v);
+                if (dst) *dst = id;
                 return status;
             }
 
@@ -169,14 +168,14 @@ static ParseStatus parse_expression_primary(Parser p, OUT(AstExpression*) dst) {
                 case TOKEN_INT:
                     return parse_int(p, head.as.single, dst);
                 default:
-                    if (dst) *dst = NULL;
+                    if (dst) *dst = ID_SENTINEL;
                     return PARSE_ILL;
             }
     }
 }
 
 static ParseStatus parse_expression_try_continue(
-    Parser p, Precedence prec, AstExpression* lhs, OUT(AstExpression*) dst, OUT(bool) parsed
+    Parser p, Precedence prec, AstExpressionId lhs, OUT(AstExpressionId) dst, OUT(bool) parsed
 ) {
     ParseStatus status;
 
@@ -215,12 +214,15 @@ static ParseStatus parse_expression_try_continue(
         token_it_next(p.tokens, NULL);
     }
 
-    AstExpression* rhs;
+    AstExpressionId rhs;
     status = parse_expression_prec(p, operator_prec, &rhs);
 
     AstExpression v = {
-        .next = NULL,
-        .range = (Range) { lhs->range.start, rhs->range.end },
+        .next = ID_SENTINEL,
+        .range = (Range) {
+            p.nodes->expressions[lhs].range.start,
+            p.nodes->expressions[rhs].range.end
+        },
         .kind = AST_EXPRESSION_BINARY_OPERATION,
         .as.binary_operation = (AstBinaryOperation) {
             .operator = operator,
@@ -228,9 +230,8 @@ static ParseStatus parse_expression_try_continue(
             .rhs = rhs,
         },
     };
-    AstExpression* ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-    *ptr = v;
-    if (dst) *dst = ptr;
+    AstExpressionId id = box_expression(p, v);
+    if (dst) *dst = id;
 
     *parsed = true;
     return status;
@@ -241,7 +242,7 @@ parse_expression_try_continue_no_parse:
     return PARSE_OK;
 }
 
-static void ast_ref_new(Parser p, Range range, OUT(AstExpression*) dst) {
+static void ast_ref_new(Parser p, Range range, OUT(AstExpressionId) dst) {
     AstIdentifier identifier = {
         .range = range,
         .string = {
@@ -250,25 +251,24 @@ static void ast_ref_new(Parser p, Range range, OUT(AstExpression*) dst) {
         }
     };
     AstExpression v = {
-        .next = NULL,
+        .next = ID_SENTINEL,
         .range = range,
         .kind = AST_EXPRESSION_REFERENCE,
         .as.reference = (AstReference) {
             .identifier = identifier,
         },
     };
-    AstExpression* ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-    *ptr = v;
-    if (dst) *dst = ptr;
+    AstExpressionId id = box_expression(p, v);
+    if (dst) *dst = id;
 }
 
-static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpression*) dst) {
-    AstBinding* bindings = NULL;
-    AstExpression* tail = NULL;
+static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressionId) dst) {
+    AstBindingSetId binding_sets = ID_SENTINEL;
+    AstExpressionId tail = ID_SENTINEL;
     
     // parse bindings
     TokenTree head;
-    AstBinding** write_bindings = &bindings;
+    AstBindingSetId previous = ID_SENTINEL;
     while (!token_it_get(*p.tokens, &head)) {
         if (head.kind != TOKEN_TREE_SINGLE) {
             break;
@@ -282,15 +282,21 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
         if (head.as.single.kind != TOKEN_CONST && head.as.single.kind != TOKEN_LET) {
             break;
         }
-        AstBinding* binding;
-        ParseStatus status = parse_binding(p, &binding);
-        if (binding) {
-            *write_bindings = binding;
-            write_bindings = &binding->next;
+        AstBindingSetId binding;
+        ParseStatus status = parse_binding_set(p, &binding);
+        if (binding != ID_SENTINEL) {
+            // *write_binding_set_ids = binding_set_id;
+            // write_binding_set_ids = &p.nodes->binding_sets[binding_set_id].next;
+            if (previous == ID_SENTINEL) {
+                binding_sets = binding;
+            } else {
+                p.nodes->binding_sets[previous].next = binding;
+            }
         }
+        previous = binding;
 
         if (token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {
-            // if status is ok, we have already reported an error when
+            // if status is not ok, we have already reported an error when
             // parsing the binding
             if (status == PARSE_OK) {
                 unexpected_token();
@@ -306,34 +312,34 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
         }
     }
 
-    AstExpression* ptr;
-    if (!bindings) ptr = tail;
+    AstExpressionId id;
+    if (!binding_sets) id = tail;
     else {
         AstExpression block = {
-            .next = NULL,
+            .next = ID_SENTINEL,
             .range = range,
             .kind = AST_EXPRESSION_BLOCK,
             .as.block = (AstBlock) {
-                .bindings = bindings,
+                .binding_sets = binding_sets,
                 .tail = tail,
             },
         };
-        ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-        *ptr = block;
+        AstExpressionId id = box_expression(p, block);
+        if (dst) *dst = id;
     }
-    if (dst) *dst = ptr;
+    if (dst) *dst = id;
     return PARSE_OK;
 }
 
-static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpression*) dst) {
+static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpressionId) dst) {
     // FIXME: better recovering
 
-    AstFunction v = { .input = NULL, .output_type = NULL, .output = NULL };
+    AstFunction v = { .input = ID_SENTINEL, .output_type = ID_SENTINEL, .output = ID_SENTINEL };
     ParseStatus status = PARSE_ILL;
 
     {
         if (parse_pattern(p, &v.input)) goto parse_function_continue_end;
-        if (v.input) range.end = v.input->range.end;
+        if (v.input) range.end = p.nodes->patterns[v.input].range.end;
     }
 
     {
@@ -341,7 +347,7 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
         if (!token_it_match_single(p.tokens, TOKEN_ARROW, &arrow)) {
             range.end = arrow.range.end;
             if (parse_expression(p, &v.output_type)) goto parse_function_continue_end;
-            if (v.output_type) range.end = v.output_type->range.end;
+            if (v.output_type) range.end = p.nodes->expressions[v.output_type].range.end;
         }
     }
 
@@ -356,7 +362,7 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
 
     {
         if (parse_expression(p, &v.output)) goto parse_function_continue_end;
-        if (v.output) range.end = v.output->range.end;
+        if (v.output) range.end = p.nodes->expressions[v.output].range.end;
     }
 
     status = PARSE_OK;
@@ -364,24 +370,23 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
 
 parse_function_continue_end:;
     AstExpression expr = {
-        .next = NULL,
+        .next = ID_SENTINEL,
         .range = range,
         .kind = AST_EXPRESSION_FUNCTION,
         .as.function = v,
     };
-    AstExpression* ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-    *ptr = expr;
-    if (dst) *dst = ptr;
+    AstExpressionId id = box_expression(p, expr);
+    if (dst) *dst = id;
     return status;
 }
 
-static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpression*) dst) {
-    AstConditional v = { .condition = NULL, .if_true = NULL, .if_false = NULL };
+static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpressionId) dst) {
+    AstConditional v = { .condition = ID_SENTINEL, .if_true = ID_SENTINEL, .if_false = ID_SENTINEL };
     ParseStatus status = PARSE_ILL;
     
     {
         if (parse_expression(p, &v.condition)) goto parse_conditonal_continue_end;
-        if (v.condition) range.end = v.condition->range.end;
+        if (v.condition) range.end = p.nodes->expressions[v.condition].range.end;
     }
 
     {
@@ -394,7 +399,7 @@ static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpre
 
     {
         if (parse_expression(p, &v.if_true)) goto parse_conditonal_continue_end;
-        if (v.if_true) range.end = v.if_true->range.end;
+        if (v.if_true) range.end = p.nodes->expressions[v.if_true].range.end;
     }
 
     {
@@ -407,7 +412,7 @@ static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpre
 
     {
         if (parse_expression(p, &v.if_false)) goto parse_conditonal_continue_end;
-        if (v.if_false) range.end = v.if_false->range.end;
+        if (v.if_false) range.end = p.nodes->expressions[v.if_false].range.end;
     }
 
     status = PARSE_OK;
@@ -415,18 +420,17 @@ static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpre
 
 parse_conditonal_continue_end:;
     AstExpression expr = {
-        .next = NULL,
+        .next = ID_SENTINEL,
         .range = range,
         .kind = AST_EXPRESSION_CONDITIONAL,
         .as.conditional = v,
     };
-    AstExpression* ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-    *ptr = expr;
-    if (dst) *dst = ptr;
+    AstExpressionId id = box_expression(p, expr);
+    if (dst) *dst = id;
     return status;
 }
 
-static ParseStatus parse_int(Parser p, Token token, OUT(AstExpression*) dst) {
+static ParseStatus parse_int(Parser p, Token token, OUT(AstExpressionId) dst) {
     size_t pos = token.range.start;
 
     int sign;
@@ -453,14 +457,13 @@ static ParseStatus parse_int(Parser p, Token token, OUT(AstExpression*) dst) {
         }
     }
 
-    AstExpression expr = {
-        .next = NULL,
+    AstExpression v = {
+        .next = ID_SENTINEL,
         .range = token.range,
         .kind = AST_EXPRESSION_LITERAL_INT,
         .as.literal_int = value,
     };
-    AstExpression* ptr = ast_storage_alloc(p.storage, sizeof(AstExpression));
-    *ptr = expr;
-    if (dst) *dst = ptr;
+    AstExpressionId id = box_expression(p, v);
+    if (dst) *dst = id;
     return PARSE_OK;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "data/analysis/ptr_hash_table.h"
+#include "data/analysis/id_hash_table.h"
 #include "data/ast.h"
 #include "util/alloc.h"
 
@@ -52,5 +52,5 @@ typedef struct AnExpressions {
 void an_register_expression(AnExpressions* expressions, AstExpression const* v);
 
 typedef struct AnExpressionTypes {
-    PtrHashTable table; // values are `AnTypeId`
+    IdHashTable table; // expression -> `AnTypeId`
 } AnExpressionTypes;

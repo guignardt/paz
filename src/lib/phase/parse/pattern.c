@@ -1,11 +1,11 @@
 #include "phase/parse.h"
 #include "phase/parse/util.h"
 
-ParseStatus parse_pattern(Parser p, OUT(AstPattern*) dst) {
+ParseStatus parse_pattern(Parser p, OUT(AstPatternId) dst) {
     TokenTree head;
     if (token_it_next(p.tokens, &head)) {
         unexpected_token();
-        if (dst) *dst = NULL;
+        if (dst) *dst = ID_SENTINEL;
         return PARSE_ILL;
     }
 
@@ -17,7 +17,7 @@ ParseStatus parse_pattern(Parser p, OUT(AstPattern*) dst) {
                     Parser p2 = {
                         .text = p.text,
                         .tokens = &contents,
-                        .storage = p.storage,
+                        .nodes = p.nodes,
                     };
                     return parse_pattern(p2, dst);
             }
@@ -25,7 +25,7 @@ ParseStatus parse_pattern(Parser p, OUT(AstPattern*) dst) {
             switch (head.as.single.kind) {
                 case TOKEN_IDENTIFIER: break;
                 default:
-                    if (dst) *dst = NULL;
+                    if (dst) *dst = ID_SENTINEL;
                     return PARSE_ILL;
             }
             break;
@@ -42,28 +42,26 @@ ParseStatus parse_pattern(Parser p, OUT(AstPattern*) dst) {
         }
     };
 
-    AstExpression* type_name = NULL;
+    AstExpressionId type_bound = ID_SENTINEL;
     ParseStatus type_status = PARSE_OK;
     Token colon_token;
     if (!token_it_match_single(p.tokens, TOKEN_COLON, &colon_token)) {
         range.end = colon_token.range.end;
-        type_status = parse_expression(p, &type_name);
-        if (type_name) {
-            range.end = type_name->range.end;
+        type_status = parse_expression(p, &type_bound);
+        if (type_bound) {
+            range.end = p.nodes->expressions[type_bound].range.end;
         }
     }
 
-    AstPattern pat = {
-        .next = NULL,
+    AstPatternId v = box_pattern(p, (AstPattern) {
+        .next = ID_SENTINEL,
         .range = range,
         .kind = AST_PATTERN_VARIABLE,
         .as.variable = (AstPatternVariable) {
             .identifier = identifier,
-            .type_bound = type_name,
+            .type_bound = type_bound,
         },
-    };
-    AstPattern* ptr = ast_storage_alloc(p.storage, sizeof(AstPattern));
-    *ptr = pat;
-    if (dst) *dst = ptr;
+    });
+    if (dst) *dst = v;
     return type_status;
 }

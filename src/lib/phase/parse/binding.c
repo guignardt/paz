@@ -3,7 +3,7 @@
 
 #include "diagnostic/report.h"
 
-ParseStatus parse_binding(Parser p, OUT(AstBinding*) dst) {
+ParseStatus parse_binding_set(Parser p, OUT(AstBindingSetId) dst) {
     TokenTree head;
     if (
         token_it_next(p.tokens, &head)
@@ -11,30 +11,30 @@ ParseStatus parse_binding(Parser p, OUT(AstBinding*) dst) {
         || (head.as.single.kind != TOKEN_CONST && head.as.single.kind != TOKEN_LET)
     ) {
         unexpected_token();
-        if (dst) *dst = NULL;
+        if (dst) *dst = ID_SENTINEL;
         return PARSE_ILL;
     }
-    AstBindingKind kind;
+    AstBindingSetKind kind;
     switch (head.as.single.kind) {
-        case TOKEN_CONST: kind = AST_BINDING_CONSTANT; break;
-        case TOKEN_LET: kind = AST_BINDING_VARIABLE; break;
+        case TOKEN_CONST: kind = AST_BINDING_SET_CONSTANT; break;
+        case TOKEN_LET: kind = AST_BINDING_SET_VARIABLE; break;
         default: __builtin_unreachable(); break; // see check above
     }
 
     // from here, we always return something, even if parsing failed further.
 
-    AstBinding v = {
-        .next = NULL,
+    AstBindingSet v = {
+        .next = ID_SENTINEL,
         .range = head.as.single.range,
         .kind = kind,
-        .pattern = NULL,
-        .value = NULL,
+        .pattern = ID_SENTINEL,
+        .value = ID_SENTINEL,
     };
     ParseStatus status = PARSE_ILL;
 
     {
         if (parse_pattern(p, &v.pattern)) goto parse_binding_end;
-        if (v.pattern) v.range.end = v.pattern->range.end;
+        if (v.pattern) v.range.end = p.nodes->patterns[v.pattern].range.end;
     }
 
     {
@@ -48,15 +48,14 @@ ParseStatus parse_binding(Parser p, OUT(AstBinding*) dst) {
 
     {
         if (parse_expression(p, &v.value)) goto parse_binding_end;
-        if (v.value) v.range.end = v.value->range.end;
+        if (v.value) v.range.end = p.nodes->expressions[v.value].range.end;
     }
 
     status = PARSE_OK;
     goto parse_binding_end;
 
 parse_binding_end:;
-    AstBinding* ptr = ast_storage_alloc(p.storage, sizeof(AstBinding));
-    *ptr = v;
-    if (dst) *dst = ptr;
+    AstBindingSetId id = box_binding_set(p, v);
+    if (dst) *dst = id;
     return status;
 }

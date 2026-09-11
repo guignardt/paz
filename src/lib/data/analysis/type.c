@@ -41,8 +41,6 @@ bool an_type_eq(AnType a, AnType b) {
         case AN_TYPE_FUNCTION:
             return a.as.function.input == b.as.function.input
                 && a.as.function.output == b.as.function.output;
-        case AN_TYPE_FLOW:
-            return a.as.flow == b.as.flow;
     }
 }
 
