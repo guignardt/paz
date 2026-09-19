@@ -4,7 +4,6 @@
 #include "data/ast/expression.h"
 #include "data/ast/identifier.h"
 #include "data/ast/pattern.h"
-#include "data/ast/storage.h"
 
 typedef struct AstModule {
     AstBindingSetId binding_sets; // list
