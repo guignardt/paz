@@ -14,9 +14,9 @@
 
 typedef struct Analyzer {
     Analysis* analysis;
-    AnScopeId _scope;
+    AnScopeLocation _scope_location;
     AnBindingKind _binding_kind;
-    AstBindingSetId _binding;
+    AstBindingSetId _binding_set;
 } Analyzer;
 
 Analyzer analyzer_init(Analysis* analysis);
@@ -26,4 +26,6 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
 void analyze_prepare_pattern(Analyzer w, AstPatternView v);
 void analyze_prepare_binding_set(Analyzer w, AstBindingSetView v);
 
-void analyze_const(Analyzer w, AstNodes nodes);
+void analyze_resolve_bindings(Analysis* a, AstNodes ast);
+    
+void analyze_const(Analysis* a, AstNodes ast);

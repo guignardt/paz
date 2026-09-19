@@ -52,5 +52,5 @@ typedef struct AnExpressions {
 void an_register_expression(AnExpressions* expressions, AstExpression const* v);
 
 typedef struct AnExpressionTypes {
-    IdHashTable table; // expression -> `AnTypeId`
+    AnTypeId* table;
 } AnExpressionTypes;

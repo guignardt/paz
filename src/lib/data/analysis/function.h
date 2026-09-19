@@ -17,7 +17,7 @@ typedef struct AnFunctions {
 } AnFunctions;
 
 typedef struct AnFunctionIds {
-    IdHashTable table; // `AstExpression*` (of kind function) -> `AnFunctionId`
+    IdHashTable table; // expression -> `AnFunctionId`
 } AnFunctionIds;
 
 AnFunctionId an_functions_register(AnFunctions* nodes, AnFunction v);

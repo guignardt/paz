@@ -10,14 +10,13 @@ typedef struct Analysis {
     AnFunctions functions;
     AnFunctionIds function_ids;
     AnScopeBindings scope_bindings;
-    AnReferenceScopes reference_scopes;
-    AnBindingIds binding_ids;
+    AnReferenceBindingLocations reference_binding_locations;
+    AnVariableBindings variable_bindings;
     AnConstantBindings constant_bindings;
-    AnExpressions expressions;
     AnConstants constants;
     AnConstantItems constant_items;
     AnTypes types;
     AnExpressionTypes expression_types;
 } Analysis;
 
-Analysis analysis_new(void);
+Analysis analysis_new(AstNodes nodes);

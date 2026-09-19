@@ -24,7 +24,7 @@ int test_ptr_hash_table(void) {
     intptr_t key;
     int const* p_value;
     for (
-        IdHashTableIt it = id_hash_table_it(table);
+        IdHashTableIt it = id_hash_table_it(&table);
         (p_value = id_hash_table_it_next(&it, &key));
     ) {
         TEST_ASSERT(1 <= key && key <= 17 && key % 4 == 1);

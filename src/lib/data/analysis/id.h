@@ -2,15 +2,14 @@
 
 #include <stdint.h>
 
-typedef uint32_t AnTypeId;
+typedef Id AnTypeId;
 
-typedef uint32_t AnFunctionId;
+typedef Id AnFunctionId;
 
-typedef uint32_t AnScopeId;
-#define AN_SCOPE_ID_SENTINEL ((AnScopeId)(-1))
+typedef Id AnScopeId;
 
 typedef struct AnBindingId {
     AnScopeId scope;
-    uint32_t _index;
+    bool _constant : 1;
+    uint32_t _index : 31;
 } AnBindingId;
-

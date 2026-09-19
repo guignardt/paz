@@ -27,10 +27,10 @@ void id_hash_table_free(OWNED(IdHashTable) table) {
 }
 
 void const* id_hash_table_get(IdHashTable table, Id key) {
-    return ptr_hash_table_get_mut(&table, key);
+    return id_hash_table_get_mut(&table, key);
 }
 
-void* ptr_hash_table_get_mut(IdHashTable* p_table, Id key) {
+void* id_hash_table_get_mut(IdHashTable* p_table, Id key) {
     IdHashTable table = *p_table;
 
     if (table._entry_count == 0) return NULL;
@@ -94,7 +94,7 @@ bool ptr_hash_table_insert_vacant(IdHashTable* p_table, Id key, void const* valu
 
 #define MAX_LOAD_FACTOR 0.75
 
-bool ptr_hash_table_insert(IdHashTable* p_table, Id key, void const* value) {
+bool id_hash_table_insert(IdHashTable* p_table, Id key, void const* value) {
     IdHashTable table = *p_table;
     
     // we first resize if needed, ensuring there is room
@@ -131,7 +131,7 @@ bool ptr_hash_table_insert(IdHashTable* p_table, Id key, void const* value) {
 }
 
 IdHashTableIt id_hash_table_it(IdHashTable table) {
-    Id const* keys = table._data;
+    Id* keys = table._data;
     return (IdHashTableIt) {
         ._keys = keys,
         ._values = keys + table._entry_count,
@@ -141,7 +141,7 @@ IdHashTableIt id_hash_table_it(IdHashTable table) {
     };
 }
 
-void const* id_hash_table_it_next(IdHashTableIt* it, OUT(Id) key) {
+void* id_hash_table_it_next(IdHashTableIt* it, OUT(Id) key) {
     for (; it->_i < it->_entry_count; it->_i++) {
         if (it->_keys[it->_i]) {
             size_t i = it->_i++;

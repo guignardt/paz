@@ -11,7 +11,7 @@
 #include "util/string.h"
 
 typedef struct AnVariable {
-    Range registers; // range of `IrRegisterId`s
+    Range registers;
 } AnVariable;
 
 typedef enum AnBindingKind {
@@ -30,38 +30,42 @@ typedef struct AnBinding {
     AnTypeId type;
 } AnBinding;
 
-typedef struct AnScope {
-    AnScopeId parent;
-    AnBinding* bindings;
-    size_t _bindings_capacity;
-    size_t bindings_len;
-    bool function;
-} AnScope;
+typedef struct AnScopeLocation {
+    AnScopeId scope;
+    uint32_t _location;
+} AnScopeLocation;
 
 typedef struct AnScopeBindings {
-    AnScope* scopes;
+    struct AnScope* _scopes;
     size_t _scopes_capacity;
     size_t scopes_len;
 } AnScopeBindings;
 
-AnScopeId an_new_scope(AnScopeBindings* bindings, AnScopeId parent, bool function);
-AnBindingId an_push_binding(AnScopeBindings* bindings, AnScopeId scope, AnBinding binding);
+AnScopeBindings an_scope_bindings_new(void);
+
+AnScopeId an_new_scope(AnScopeBindings* bindings, AnScopeLocation parent, bool function);
+AnBindingId an_add_binding(AnScopeBindings* bindings, AnScopeId scope, AnBinding binding);
 AnBinding const* an_get_binding(AnScopeBindings bindings, AnBindingId id);
 AnBinding* an_get_binding_mut(AnScopeBindings* bindings, AnBindingId id);
 
-int an_find_binding_in_scope(AnScopeBindings bindings, AnScopeId scope, String s, OUT(AnBindingId) id);
-int an_find_binding(AnScopeBindings bindings, AnScopeId scope, String s, OUT(AnBindingId) id);
+int an_find_binding_in_scope(AnScopeBindings bindings, AnScopeLocation loc, String s, OUT(AnBindingId) id);
+int an_find_binding(AnScopeBindings bindings, AnScopeLocation loc, String s, OUT(AnBindingId) id);
 
-typedef struct AnReferenceScopes {
-    IdHashTable table; // expression -> `AnScopeId`
-} AnReferenceScopes;
+AnScopeLocation an_scope_end_location(AnScopeBindings bindings, AnScopeId scope);
+AnScopeLocation an_scope_constant_location(AnScopeId scope);
 
-typedef struct AnBindingIds {
-    // pattern (of kind variable)
-    // or expression (of kind reference)
-    // -> `AnBindingId`
-    IdHashTable table;
-} AnBindingIds;
+typedef struct AnBindingLocation {
+    AnScopeLocation location;
+    AnBindingId binding;
+} AnBindingLocation;
+
+typedef struct AnReferenceBindingLocations {
+    IdHashTable table; // expression (of kind reference) -> `AnBindingLocation`
+} AnReferenceBindingLocations;
+
+typedef struct AnVariableBindings {
+    IdHashTable table; // pattern (of kind variable) -> `AnBindingId`
+} AnVariableBindings;
 
 typedef struct AnConstantBindings {
     BOXED(AstBindingSet const*) data;
