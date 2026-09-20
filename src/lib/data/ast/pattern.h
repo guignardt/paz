@@ -28,11 +28,11 @@ typedef struct AstPatternView {
     AstNodes nodes;
 } AstPatternView;
 
-#define AST_VIEW_PATTERN(n, i)                                  \
-    ((AstPatternView) {                                         \
-        .data = ((i) == ID_SENTINEL ? NULL : &(n).patterns[i]), \
-        .id = (i),                                              \
-        .nodes = (n),                                           \
+#define AST_VIEW_PATTERN(n, i)                                          \
+    ((AstPatternView) {                                                 \
+        .data = ((i) == ID_SENTINEL ? NULL : &(n).patterns.data[i]),    \
+        .id = (i),                                                      \
+        .nodes = (n),                                                   \
     })
 
 #define AST_VIEW_CHILD_PATTERN(v, f)                            \

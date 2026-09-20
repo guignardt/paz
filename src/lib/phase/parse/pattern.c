@@ -48,8 +48,8 @@ ParseStatus parse_pattern(Parser p, OUT(AstPatternId) dst) {
     if (!token_it_match_single(p.tokens, TOKEN_COLON, &colon_token)) {
         range.end = colon_token.range.end;
         type_status = parse_expression(p, &type_bound);
-        if (type_bound) {
-            range.end = p.nodes->expressions[type_bound].range.end;
+        if (type_bound != ID_SENTINEL) {
+            range.end = p.nodes->expressions.data[type_bound].range.end;
         }
     }
 

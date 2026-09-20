@@ -34,8 +34,4 @@ typedef struct AnConstantItem {
     uint32_t id; // `AstExpressionId` or `AstBindingSetId`
 } AnConstantItem;
 
-typedef struct AnConstantItems {
-    OWNED(AnConstantItem) data;
-    size_t len;
-    size_t _capacity;
-} AnConstantItems;
+typedef DYNAMIC_ARRAY(AnConstantItem, AnConstantItems) AnConstantItems;

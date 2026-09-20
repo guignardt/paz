@@ -5,7 +5,7 @@
 #include "data/analysis/type.h"
 
 AnTypes an_types_new(void) {
-    return (AnTypes) { ._data = NULL, ._len = 0, ._capacity = 0 };
+    return (AnTypes) { ._types = {0} };
 }
 
 AnTypes an_types_default(void) {
@@ -16,19 +16,19 @@ AnTypes an_types_default(void) {
     };
 
     AnTypes types = an_types_new();
-    reserve(ERASE2(&types._data), &types._capacity, sizeof(default_types), 1);
-    memcpy(types._data, default_types, sizeof(default_types));
-    types._len += sizeof(default_types) / sizeof(AnType);
+    for (size_t i = 0; i < sizeof(default_types) / sizeof(AnType); i++) {
+        DYNAMIC_ARRAY_PUSH(&types._types, default_types[i]);
+    }
 
     return types;
 }
 
 void an_types_free(OWNED(AnTypes) types) {
-    free(types->_data);
+    free(types->_types.data);
 }
 
 AnType an_types_get(AnTypes types, AnTypeId id) {
-    return types._data[id];
+    return types._types.data[id];
 }
 
 bool an_type_eq(AnType a, AnType b) {
@@ -45,18 +45,12 @@ bool an_type_eq(AnType a, AnType b) {
 }
 
 AnTypeId an_types_get_id_or_insert(AnTypes* types, AnType type) {
-    for (AnTypeId i = 0; i < types->_len; i++) {
-        AnType elt = types->_data[i];
+    for (AnTypeId i = 0; i < types->_types.len; i++) {
+        AnType elt = types->_types.data[i];
         if (an_type_eq(elt, type)) return i;
     }
 
-    AnTypeId id = types->_len;
-    reserve(ERASE2(&types->_data), &types->_capacity, types->_len + 1, sizeof(AnType));
-    types->_data[types->_len++] = type;
+    AnTypeId id = types->_types.len;
+    DYNAMIC_ARRAY_PUSH(&types->_types, type);
     return id;
-}
-
-void an_register_expression(AnExpressions* expressions, AstExpression const* v) {
-    reserve(ERASE2(&expressions->data), &expressions->_capacity, expressions->len + 1, sizeof(v));
-    expressions->data[expressions->len++] = v;
 }

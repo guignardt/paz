@@ -1,8 +1,7 @@
 #include "data/analysis.h"
 
-AnFunctionId an_functions_register(AnFunctions* nodes, AnFunction v) {
-    AnFunctionId id = nodes->len;
-    reserve(ERASE2(&nodes->data), &nodes->_capacity, nodes->len + 1, sizeof(v));
-    nodes->data[nodes->len++] = v;
+AnFunctionId an_functions_register(AnFunctions* functions, AnFunction v) {
+    AnFunctionId id = functions->len;
+    DYNAMIC_ARRAY_PUSH(functions, v);
     return id;
 }

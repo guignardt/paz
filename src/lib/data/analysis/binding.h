@@ -36,9 +36,7 @@ typedef struct AnScopeLocation {
 } AnScopeLocation;
 
 typedef struct AnScopeBindings {
-    struct AnScope* _scopes;
-    size_t _scopes_capacity;
-    size_t scopes_len;
+    DYNAMIC_ARRAY(struct AnScope) _scopes;
 } AnScopeBindings;
 
 AnScopeBindings an_scope_bindings_new(void);
@@ -66,11 +64,3 @@ typedef struct AnReferenceBindingLocations {
 typedef struct AnVariableBindings {
     IdHashTable table; // pattern (of kind variable) -> `AnBindingId`
 } AnVariableBindings;
-
-typedef struct AnConstantBindings {
-    BOXED(AstBindingSet const*) data;
-    size_t len;
-    size_t _capacity;
-} AnConstantBindings;
-
-void an_register_constant_binding(AnConstantBindings* bindings, AstBindingSet const* v);

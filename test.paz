@@ -3,4 +3,4 @@ const main = fn (a: Int) -> Int => (
     if 42 == foo % a then 3 else a + 2
 );
 
-const foo = fn (a: Int) -> Int => (a);
+const bar = fn (a: Int) -> Int => (a);

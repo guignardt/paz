@@ -17,7 +17,7 @@ ParseStatus parse_module(Parser p, OUT(AstModule) dst) {
             if (previous == ID_SENTINEL) {
                 v.binding_sets = binding;
             } else {
-                p.nodes->binding_sets[previous].next = binding;
+                p.nodes->binding_sets.data[previous].next = binding;
             }
         }
         previous = binding;

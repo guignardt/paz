@@ -12,7 +12,6 @@ typedef struct Analysis {
     AnScopeBindings scope_bindings;
     AnReferenceBindingLocations reference_binding_locations;
     AnVariableBindings variable_bindings;
-    AnConstantBindings constant_bindings;
     AnConstants constants;
     AnConstantItems constant_items;
     AnTypes types;

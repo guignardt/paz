@@ -16,7 +16,6 @@ typedef enum ParseStatus {
 typedef struct Parser {
     char const* text;
     TokenIt* tokens;
-    // AstStorage* storage;
     AstNodes* nodes;
 } Parser;
 

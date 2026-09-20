@@ -49,28 +49,24 @@ void source_new(char const* path, BOXED(char) text, OUT(Source) dst) {
 }
 
 int source_load(char const* path, FILE* file, OUT(Source) dst) {
-    BOXED(char) text = NULL;
-    size_t len = 0;
-    size_t capacity = 0;
+    DYNAMIC_ARRAY(char) text = {0};
 
     while (true) {
         if (feof(file)) {
             break;
         }
 
-        reserve(ERASE2(&text), &capacity, len + 1, 1);
-        len += fread(text + len, 1, capacity - len, file);
+        reserve(ERASE2(&text.data), &text.cap, text.len + 1, 1);
+        text.len += fread(text.data + text.len, 1, text.cap - text.len, file);
         if (ferror(file)) {
-            free(text);
+            free(text.data);
             return -1;
         }
     }
 
-    reserve(ERASE2(&text), &capacity, len + 1, 1);
-    text[len] = '\0';
-    len++;
+    DYNAMIC_ARRAY_PUSH(&text, '\0');
 
-    source_new(path, text, dst);
+    source_new(path, text.data, dst);
     return 0;
 }
 

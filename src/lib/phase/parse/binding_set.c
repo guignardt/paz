@@ -34,7 +34,9 @@ ParseStatus parse_binding_set(Parser p, OUT(AstBindingSetId) dst) {
 
     {
         if (parse_pattern(p, &v.pattern)) goto parse_binding_end;
-        if (v.pattern) v.range.end = p.nodes->patterns[v.pattern].range.end;
+        if (v.pattern != ID_SENTINEL) {
+            v.range.end = p.nodes->patterns.data[v.pattern].range.end;
+        }
     }
 
     {
@@ -48,7 +50,9 @@ ParseStatus parse_binding_set(Parser p, OUT(AstBindingSetId) dst) {
 
     {
         if (parse_expression(p, &v.value)) goto parse_binding_end;
-        if (v.value) v.range.end = p.nodes->expressions[v.value].range.end;
+        if (v.value != ID_SENTINEL) {
+            v.range.end = p.nodes->expressions.data[v.value].range.end;
+        }
     }
 
     status = PARSE_OK;

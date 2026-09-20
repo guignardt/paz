@@ -90,11 +90,11 @@ typedef struct AstExpressionView {
     AstNodes nodes;
 } AstExpressionView;
 
-#define AST_VIEW_EXPRESSION(n, i)                                   \
-    ((AstExpressionView) {                                          \
-        .data = ((i) == ID_SENTINEL ? NULL : &(n).expressions[i]),  \
-        .id = (i),                                                  \
-        .nodes = (n),                                               \
+#define AST_VIEW_EXPRESSION(n, i)                                       \
+    ((AstExpressionView) {                                              \
+        .data = ((i) == ID_SENTINEL ? NULL : &(n).expressions.data[i]), \
+        .id = (i),                                                      \
+        .nodes = (n),                                                   \
     })
 
 #define AST_VIEW_CHILD_EXPRESSION(v, f)                             \

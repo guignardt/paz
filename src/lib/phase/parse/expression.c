@@ -217,11 +217,13 @@ static ParseStatus parse_expression_try_continue(
     AstExpressionId rhs;
     status = parse_expression_prec(p, operator_prec, &rhs);
 
+    // FIXME: what if parsing rhs failed
+
     AstExpression v = {
         .next = ID_SENTINEL,
         .range = (Range) {
-            p.nodes->expressions[lhs].range.start,
-            p.nodes->expressions[rhs].range.end
+            p.nodes->expressions.data[lhs].range.start,
+            p.nodes->expressions.data[rhs].range.end
         },
         .kind = AST_EXPRESSION_BINARY_OPERATION,
         .as.binary_operation = (AstBinaryOperation) {
@@ -290,10 +292,10 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
             if (previous == ID_SENTINEL) {
                 binding_sets = binding;
             } else {
-                p.nodes->binding_sets[previous].next = binding;
+                p.nodes->binding_sets.data[previous].next = binding;
             }
+            previous = binding;
         }
-        previous = binding;
 
         if (token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {
             // if status is not ok, we have already reported an error when
@@ -313,7 +315,7 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
     }
 
     AstExpressionId id;
-    if (!binding_sets) id = tail;
+    if (binding_sets == ID_SENTINEL) id = tail;
     else {
         AstExpression block = {
             .next = ID_SENTINEL,
@@ -324,8 +326,7 @@ static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressi
                 .tail = tail,
             },
         };
-        AstExpressionId id = box_expression(p, block);
-        if (dst) *dst = id;
+        id = box_expression(p, block);
     }
     if (dst) *dst = id;
     return PARSE_OK;
@@ -339,7 +340,9 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
 
     {
         if (parse_pattern(p, &v.input)) goto parse_function_continue_end;
-        if (v.input) range.end = p.nodes->patterns[v.input].range.end;
+        if (v.input != ID_SENTINEL) {
+            range.end = p.nodes->patterns.data[v.input].range.end;
+        }
     }
 
     {
@@ -347,7 +350,9 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
         if (!token_it_match_single(p.tokens, TOKEN_ARROW, &arrow)) {
             range.end = arrow.range.end;
             if (parse_expression(p, &v.output_type)) goto parse_function_continue_end;
-            if (v.output_type) range.end = p.nodes->expressions[v.output_type].range.end;
+            if (v.output_type != ID_SENTINEL) {
+                range.end = p.nodes->expressions.data[v.output_type].range.end;
+            }
         }
     }
 
@@ -362,7 +367,9 @@ static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpress
 
     {
         if (parse_expression(p, &v.output)) goto parse_function_continue_end;
-        if (v.output) range.end = p.nodes->expressions[v.output].range.end;
+        if (v.output != ID_SENTINEL) {
+            range.end = p.nodes->expressions.data[v.output].range.end;
+        }
     }
 
     status = PARSE_OK;
@@ -386,7 +393,9 @@ static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpre
     
     {
         if (parse_expression(p, &v.condition)) goto parse_conditonal_continue_end;
-        if (v.condition) range.end = p.nodes->expressions[v.condition].range.end;
+        if (v.condition != ID_SENTINEL) {
+            range.end = p.nodes->expressions.data[v.condition].range.end;
+        }
     }
 
     {
@@ -399,7 +408,9 @@ static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpre
 
     {
         if (parse_expression(p, &v.if_true)) goto parse_conditonal_continue_end;
-        if (v.if_true) range.end = p.nodes->expressions[v.if_true].range.end;
+        if (v.if_true != ID_SENTINEL) {
+            range.end = p.nodes->expressions.data[v.if_true].range.end;
+        }
     }
 
     {
@@ -412,7 +423,9 @@ static ParseStatus parse_conditonal_continue(Parser p, Range range, OUT(AstExpre
 
     {
         if (parse_expression(p, &v.if_false)) goto parse_conditonal_continue_end;
-        if (v.if_false) range.end = p.nodes->expressions[v.if_false].range.end;
+        if (v.if_false != ID_SENTINEL) {
+            range.end = p.nodes->expressions.data[v.if_false].range.end;
+        }
     }
 
     status = PARSE_OK;

@@ -26,7 +26,7 @@ typedef struct AstBindingSetView {
 
 #define AST_VIEW_BINDING_SET(n, i)                                              \
     ((AstBindingSetView) {                                                      \
-        .data = ((i) == ID_SENTINEL ? NULL : &(n).binding_sets[i]),             \
+        .data = ((i) == ID_SENTINEL ? NULL : &(n).binding_sets.data[i]),        \
         .id = (i),                                                              \
         .nodes = (n),                                                           \
     })

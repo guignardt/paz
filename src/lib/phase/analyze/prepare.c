@@ -50,13 +50,7 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
             .kind = AN_CONSTANT_ITEM_EXPRESSION,
             .id = v.id,
         };
-        reserve(
-            ERASE2(&w.analysis->constant_items.data),
-            &w.analysis->constant_items._capacity,
-            w.analysis->constant_items.len + 1,
-            sizeof(AnConstantItem)
-        );
-        w.analysis->constant_items.data[w.analysis->constant_items.len++] = constant_item;
+        DYNAMIC_ARRAY_PUSH(&w.analysis->constant_items, constant_item);
     }
 
     AnScopeId scope_id;
@@ -196,13 +190,7 @@ void analyze_prepare_binding_set(Analyzer w, AstBindingSetView v) {
             .kind = AN_CONSTANT_ITEM_BINDING,
             .id = v.id,
         };
-        reserve(
-            ERASE2(&w.analysis->constant_items.data),
-            &w.analysis->constant_items._capacity,
-            w.analysis->constant_items.len + 1,
-            sizeof(AnConstantItem)
-        );
-        w.analysis->constant_items.data[w.analysis->constant_items.len++] = item;
+        DYNAMIC_ARRAY_PUSH(&w.analysis->constant_items, item);
     }
 
     w._binding_set = v.id;

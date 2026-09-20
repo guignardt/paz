@@ -8,17 +8,9 @@ typedef Id AstPatternId;
 typedef Id AstBindingSetId;
 
 typedef struct AstNodes {
-    BOXED(struct AstExpression) expressions;
-    size_t expressions_len;
-    size_t _expressions_cap;
-
-    BOXED(struct AstPattern) patterns;
-    size_t patterns_len;
-    size_t _patterns_cap;
-
-    BOXED(struct AstBindingSet) binding_sets;
-    size_t binding_sets_len;
-    size_t _binding_sets_cap;
+    DYNAMIC_ARRAY(struct AstExpression) expressions;
+    DYNAMIC_ARRAY(struct AstPattern) patterns;
+    DYNAMIC_ARRAY(struct AstBindingSet) binding_sets;
 } AstNodes;
 
 AstNodes ast_nodes_new(void);

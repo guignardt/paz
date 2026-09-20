@@ -10,7 +10,7 @@ void analyze_resolve_bindings(Analysis* a, AstNodes ast) {
         (binding_location = (AnBindingLocation*)id_hash_table_it_next(&it, &reference_id));
     ) {
         AnBindingId binding_id;
-        String name = ast.expressions[reference_id].as.reference.identifier.string;
+        String name = ast.expressions.data[reference_id].as.reference.identifier.string;
         if (an_find_binding(a->scope_bindings, binding_location->location, name, &binding_id)) {
             report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
             report_message("failed to find binding with name `%.*s`", (int)name.len, name.data);

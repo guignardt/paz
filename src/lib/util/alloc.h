@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdlib.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -11,7 +12,7 @@
 
 // A variable of type OWNED(T) owns the value but is not responsible for freeing the memory in
 // which it lies. Typically, a function taking in an OWNED(T) will destroy its pointee (including
-// all memory that the value owns) but not the memory directly referenced by this pointer. 
+// all memory that the value owns) but not free the memory directly referenced by this pointer. 
 #define OWNED(T) T*
 
 #define ERASE(ptr) ((void*)(ptr))
@@ -22,6 +23,16 @@ BOXED(void) realloc_or_exit(BOXED(void) data, size_t size);
 
 // `*p_cap` in bytes, `len` in units of size `size`
 void reserve(BOXED(void)* p_buf, size_t* p_cap, size_t len, size_t size);
+
+#define DYNAMIC_ARRAY(T, ...) struct __VA_ARGS__ { BOXED(T) data; size_t len; size_t cap; }
+
+#define DYNAMIC_ARRAY_PUSH(arr, elt) \
+    DYNAMIC_ARRAY_PUSH_PARTS(&(arr)->data, &(arr)->len, &(arr)->cap, elt)
+
+#define DYNAMIC_ARRAY_PUSH_PARTS(data, len, cap, elt) do {      \
+    reserve(ERASE2(data), (cap), *(len) + 1, sizeof(elt));      \
+    (*(data))[(*(len))++] = elt;                                \
+} while(0);
 
 typedef struct Range {
     uint32_t start;

@@ -30,9 +30,7 @@ typedef struct AnType {
 } AnType;
 
 typedef struct AnTypes {
-    BOXED(AnType) _data;
-    size_t _len;
-    size_t _capacity;
+    DYNAMIC_ARRAY(AnType) _types;
 } AnTypes;
 
 AnTypes an_types_new(void);
@@ -42,14 +40,6 @@ void an_types_free(OWNED(AnTypes) types);
 // `id` must be valid
 AnType an_types_get(AnTypes types, AnTypeId id);
 AnTypeId an_types_get_id_or_insert(AnTypes* types, AnType type);
-
-typedef struct AnExpressions {
-    AstExpression const** data;
-    size_t len;
-    size_t _capacity;
-} AnExpressions;
-
-void an_register_expression(AnExpressions* expressions, AstExpression const* v);
 
 typedef struct AnExpressionTypes {
     AnTypeId* table;
