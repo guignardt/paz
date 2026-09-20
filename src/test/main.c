@@ -21,10 +21,10 @@ int test_ptr_hash_table(void) {
     TEST_ASSERT(id_hash_table_get(table, 17));
 
     bool seen_key[5] = {0};
-    intptr_t key;
+    Id key;
     int const* p_value;
     for (
-        IdHashTableIt it = id_hash_table_it(&table);
+        IdHashTableIt it = id_hash_table_it(table);
         (p_value = id_hash_table_it_next(&it, &key));
     ) {
         TEST_ASSERT(1 <= key && key <= 17 && key % 4 == 1);

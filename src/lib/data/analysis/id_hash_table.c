@@ -101,7 +101,11 @@ bool id_hash_table_insert(IdHashTable* p_table, Id key, void const* value) {
     if (table._len >= MAX_LOAD_FACTOR * table._entry_count) {
         size_t new_entry_count = (table._entry_count <= 2) ? 4 : (2 * table._entry_count);
         void* new_data = alloc_or_exit(new_entry_count * (sizeof(Id) + table._value_size));
-        memset(new_data, 0, new_entry_count * sizeof(Id));
+        // set new keys to sentinel
+        Id* new_keys = new_data;
+        for (size_t i = 0; i < new_entry_count; i++) {
+            new_keys[i] = ID_SENTINEL;
+        }
         IdHashTable new_table = {
             ._data = new_data,
             ._entry_count = new_entry_count,
@@ -110,7 +114,6 @@ bool id_hash_table_insert(IdHashTable* p_table, Id key, void const* value) {
         };
 
         Id const* keys = table._data;
-
         void const* values = keys + table._entry_count;
         for (size_t i = 0; i < table._entry_count; i++) {
             Id key = keys[i];
@@ -143,7 +146,7 @@ IdHashTableIt id_hash_table_it(IdHashTable table) {
 
 void* id_hash_table_it_next(IdHashTableIt* it, OUT(Id) key) {
     for (; it->_i < it->_entry_count; it->_i++) {
-        if (it->_keys[it->_i]) {
+        if (it->_keys[it->_i] != ID_SENTINEL) {
             size_t i = it->_i++;
             if (key) *key = it->_keys[i];
             return it->_values + i * it->_value_size;
