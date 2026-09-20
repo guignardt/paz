@@ -57,10 +57,7 @@ typedef struct AnBindingLocation {
     AnBindingId binding;
 } AnBindingLocation;
 
-typedef struct AnReferenceBindingLocations {
-    IdHashTable table; // expression (of kind reference) -> `AnBindingLocation`
-} AnReferenceBindingLocations;
+typedef IdHashTable /* expression (reference) -> `AnBindingLocation` */
+    AnReferenceBindingLocations;
 
-typedef struct AnVariableBindings {
-    IdHashTable table; // pattern (of kind variable) -> `AnBindingId`
-} AnVariableBindings;
+typedef IdHashTable /* pattern (variable) -> `AnBindingId` */ AnVariableBindings;

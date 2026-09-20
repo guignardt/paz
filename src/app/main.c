@@ -92,15 +92,20 @@ int main(int argc, char const** argv) {
         goto parse_error_end;
     }
 
-    // Analysis analysis = analysis_new();
+    // Analysis analysis = analysis_new(ast_nodes);
 
     // Analyzer w = analyzer_init(&analysis);
-    // analyze_prepare_module(w, program->root);
+    // analyze_prepare_module(w, (AstModuleView) { .data = &module, .nodes = ast_nodes });
     // if (report_count(SEVERITY_ERROR) > 0) {
     //     goto analyze_error_end;
     // }
-    // w = analyzer_init(&analysis);
-    // analyze_const(w);
+
+    // analyze_resolve_bindings(&analysis, ast_nodes);
+    // if (report_count(SEVERITY_ERROR) > 0) {
+    //     goto analyze_error_end;
+    // }
+
+    // analyze_const(&analysis, ast_nodes);
     // if (report_count(SEVERITY_ERROR) > 0) {
     //     goto analyze_error_end;
     // }
@@ -109,18 +114,18 @@ int main(int argc, char const** argv) {
     eprintf("\n=== ANALYSIS ===\n");
 
     eprintf("\n--- function ids ---\n");
-    intptr_t key;
+    AstExpressionId key;
     AnFunctionId const* p_value;
     for (
-        IdHashTableIt it = id_hash_table_it(analysis.function_ids.table);
+        IdHashTableIt it = id_hash_table_it(analysis.function_ids);
         (p_value = id_hash_table_it_next(&it, &key));
     ) {
-        eprintf("%p: %u\n", (void const*)key, (unsigned int)(*p_value));
+        eprintf("%u: %u\n", (unsigned int)key, (unsigned int)(*p_value));
     }
 #endif
 
-// analyze_error_end:
-    // TODO: free analyzer stuff
+analyze_error_end:
+    // TODO: free analysis
 parse_error_end:
     ast_nodes_free(&ast_nodes);
 tokenize_error_end:

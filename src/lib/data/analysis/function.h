@@ -13,8 +13,6 @@ typedef struct AnFunction {
 
 typedef DYNAMIC_ARRAY(AnFunction, AnFunctions) AnFunctions;
 
-typedef struct AnFunctionIds {
-    IdHashTable table; // expression -> `AnFunctionId`
-} AnFunctionIds;
+typedef IdHashTable /* expression -> `AnFunctionId` */ AnFunctionIds;
 
 AnFunctionId an_functions_register(AnFunctions* functions, AnFunction v);

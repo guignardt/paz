@@ -201,7 +201,7 @@ static int sort_constant_items_visit_deps_expression(
 
         case AST_EXPRESSION_REFERENCE:
             binding_location = (AnBindingLocation*)
-                id_hash_table_get(a->reference_binding_locations.table, v.id);
+                id_hash_table_get(a->reference_binding_locations, v.id);
             name = v.data->as.reference.identifier.string;
             if (an_find_binding(a->scope_bindings, binding_location->location, name, &binding_id)) {
                 report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
@@ -294,12 +294,12 @@ static void evaluate_constant_item(AnConstantItem item, AstNodes nodes, Analysis
     switch (item.kind) {
         case AN_CONSTANT_ITEM_EXPRESSION:
             value = evaluate_expression(AST_VIEW_EXPRESSION(nodes, item.id), a);
-            id_hash_table_insert(&a->constants.table, item.id, &value);
+            id_hash_table_insert(&a->constants, item.id, &value);
             break;
         
         case AN_CONSTANT_ITEM_BINDING:
             binding_set = AST_VIEW_BINDING_SET(nodes, item.id);
-            value = *(AnConstant const*)id_hash_table_get(a->constants.table, binding_set.data->value);
+            value = *(AnConstant const*)id_hash_table_get(a->constants, binding_set.data->value);
             match_constant_to_pattern(value, AST_VIEW_CHILD_PATTERN(binding_set, .pattern), a);
             break;
     }
@@ -317,7 +317,7 @@ static AnConstant evaluate_expression(AstExpressionView v, Analysis* a) {
     switch (v.data->kind) {
         case AST_EXPRESSION_REFERENCE:
             binding_location = *(AnBindingLocation const*)
-                id_hash_table_get(a->reference_binding_locations.table, v.id);
+                id_hash_table_get(a->reference_binding_locations, v.id);
             binding = *an_get_binding(a->scope_bindings, binding_location.binding);
             assert(binding.kind == AN_BINDING_CONSTANT);
             return binding.as.constant;
@@ -348,7 +348,7 @@ static AnConstant evaluate_expression(AstExpressionView v, Analysis* a) {
             };
             type_id = an_types_get_id_or_insert(&a->types, type);
 
-            function_id = *(AnFunctionId const*)id_hash_table_get(a->function_ids.table, v.id);
+            function_id = *(AnFunctionId const*)id_hash_table_get(a->function_ids, v.id);
             return (AnConstant) {
                 .kind = AN_CONSTANT_FUNCTION,
                 .as.function = function_id,
@@ -392,7 +392,7 @@ static void match_constant_to_pattern(AnConstant c, AstPatternView p, Analysis* 
     AnBinding* binding;
     switch (p.data->kind) {
         case AST_PATTERN_VARIABLE:
-            binding_id = *(AnBindingId const*)id_hash_table_get(a->variable_bindings.table, p.id);
+            binding_id = *(AnBindingId const*)id_hash_table_get(a->variable_bindings, p.id);
             binding = an_get_binding_mut(&a->scope_bindings, binding_id);
             assert(binding->kind == AN_BINDING_CONSTANT);
             binding->as.constant = (AnConstant) {
@@ -402,7 +402,7 @@ static void match_constant_to_pattern(AnConstant c, AstPatternView p, Analysis* 
 
             if (p.data->as.variable.type_bound != ID_SENTINEL) {
                 type_bound_value = *(AnConstant const*)
-                    id_hash_table_get(a->constants.table, p.data->as.variable.type_bound);
+                    id_hash_table_get(a->constants, p.data->as.variable.type_bound);
                 if (type_bound_value.kind != AN_CONSTANT_TYPE) {
                     report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
                     report_message("invalid type bound: bound value didn't evaluate to a type");

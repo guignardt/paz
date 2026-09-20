@@ -41,6 +41,4 @@ void an_types_free(OWNED(AnTypes) types);
 AnType an_types_get(AnTypes types, AnTypeId id);
 AnTypeId an_types_get_id_or_insert(AnTypes* types, AnType type);
 
-typedef struct AnExpressionTypes {
-    AnTypeId* table;
-} AnExpressionTypes;
+typedef AnTypeId* AnExpressionTypes;

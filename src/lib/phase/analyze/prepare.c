@@ -86,7 +86,7 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
                 .binding = {0} // filled in during binding resolution
             };
             id_hash_table_insert(
-                &w.analysis->reference_binding_locations.table,
+                &w.analysis->reference_binding_locations,
                 v.id,
                 &binding_location
             );
@@ -95,7 +95,7 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
         case AST_EXPRESSION_FUNCTION:
             function = (AnFunction) { .expression = v.id };
             function_id = an_functions_register(&w.analysis->functions, function);
-            id_hash_table_insert(&w.analysis->function_ids.table, v.id, &function_id);
+            id_hash_table_insert(&w.analysis->function_ids, v.id, &function_id);
 
             output_type = AST_VIEW_CHILD_EXPRESSION(v, .as.function.output_type);
             if (output_type.data) {
@@ -168,7 +168,7 @@ void analyze_prepare_pattern(Analyzer w, AstPatternView v) {
                 .source_binding_set = w._binding_set
             };
             binding_id = an_add_binding(&w.analysis->scope_bindings, w._scope_location.scope, binding);
-            id_hash_table_insert(&w.analysis->variable_bindings.table, v.id, &binding_id);
+            id_hash_table_insert(&w.analysis->variable_bindings, v.id, &binding_id);
 
             type_bound = AST_VIEW_CHILD_EXPRESSION(v, .as.variable.type_bound);
             if (type_bound.data) {

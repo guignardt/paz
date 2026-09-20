@@ -6,7 +6,7 @@ void analyze_resolve_bindings(Analysis* a, AstNodes ast) {
     AstExpressionId reference_id;
     AnBindingLocation* binding_location;
     for (
-        IdHashTableIt it = id_hash_table_it(a->reference_binding_locations.table);
+        IdHashTableIt it = id_hash_table_it(a->reference_binding_locations);
         (binding_location = (AnBindingLocation*)id_hash_table_it_next(&it, &reference_id));
     ) {
         AnBindingId binding_id;

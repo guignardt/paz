@@ -20,9 +20,7 @@ typedef struct AnConstant {
     AnTypeId type;
 } AnConstant;
 
-typedef struct AnConstants {
-    IdHashTable table; // expression -> `AnConstant`
-} AnConstants;
+typedef IdHashTable /* expression -> `AnConstant` */ AnConstants;
 
 typedef enum AnConstantItemKind {
     AN_CONSTANT_ITEM_EXPRESSION,

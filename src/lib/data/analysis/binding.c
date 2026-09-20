@@ -87,3 +87,17 @@ int an_find_binding(AnScopeBindings bindings, AnScopeLocation loc, String s, OUT
     }
     return -1;
 }
+
+AnScopeLocation an_scope_end_location(AnScopeBindings bindings, AnScopeId scope) {
+    return (AnScopeLocation) {
+        .scope = scope,
+        ._location = bindings._scopes.data[scope].variable_bindings.len,
+    };
+}
+
+AnScopeLocation an_scope_constant_location(AnScopeId scope) {
+    return (AnScopeLocation) {
+        .scope = scope,
+        ._location = 0,
+    };
+}
