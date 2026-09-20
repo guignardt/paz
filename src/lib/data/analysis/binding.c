@@ -59,7 +59,7 @@ AnBinding* an_get_binding_mut(AnScopeBindings* bindings, AnBindingId id) {
 int an_find_binding_in_scope(AnScopeBindings bindings, AnScopeLocation loc, String s, OUT(AnBindingId) id) {
     AnScope const* scope = &bindings._scopes.data[loc.scope];
 
-    for (intptr_t i = loc._location - 1; i >= 0; i--) {
+    for (intptr_t i = (intptr_t)loc._location - 1; i >= 0; i--) {
         AnBinding b = scope->variable_bindings.data[i];
         if (b.name.len == s.len && !strncmp(b.name.data, s.data, s.len)) {
             if (id) *id = (AnBindingId) { .scope = loc.scope, ._constant = false, ._index = i };

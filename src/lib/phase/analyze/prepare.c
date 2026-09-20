@@ -115,6 +115,8 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
             w._binding_kind = AN_BINDING_VARIABLE;
             w._binding_set = ID_SENTINEL;
             analyze_prepare_pattern(w, AST_VIEW_CHILD_PATTERN(v, .as.function.input));
+            // FIXME: this probably isn't the right place for setting the scope location.
+            w._scope_location = an_scope_end_location(w.analysis->scope_bindings, w._scope_location.scope);
             analyze_prepare_expression(w, AST_VIEW_CHILD_EXPRESSION(v, .as.function.output), false);
 
             break;
@@ -151,7 +153,7 @@ void analyze_prepare_pattern(Analyzer w, AstPatternView v) {
                 if (!an_find_binding_in_scope(
                     w.analysis->scope_bindings,
                     // FIXME: is this right?
-                    an_scope_end_location(w.analysis->scope_bindings, w._scope_location.scope),
+                    an_scope_constant_location(w._scope_location.scope),
                     name,
                     NULL
                 )) {
