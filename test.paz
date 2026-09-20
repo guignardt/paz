@@ -1,5 +1,5 @@
 const main = fn (a: Int) -> Int => (
-    let foo = a - 2 * b;
+    let foo = a - 2 * a;
     if 42 == foo % a then 3 else a + 2
 );
 
