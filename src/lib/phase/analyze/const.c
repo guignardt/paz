@@ -314,13 +314,15 @@ static AnConstant evaluate_expression(AstExpressionView v, Analysis* a) {
     AnFunctionId function_id;
     AnType type;
     AnTypeId type_id;
+    AnConstant result;
     switch (v.data->kind) {
         case AST_EXPRESSION_REFERENCE:
             binding_location = *(AnBindingLocation const*)
                 id_hash_table_get(a->reference_binding_locations, v.id);
             binding = *an_get_binding(a->scope_bindings, binding_location.binding);
             assert(binding.kind == AN_BINDING_CONSTANT);
-            return binding.as.constant;
+            result = binding.as.constant;
+            break;
 
         case AST_EXPRESSION_FUNCTION:
             input_type = pattern_explicit_type(AST_VIEW_CHILD_PATTERN(v, .as.function.input), a);
@@ -349,18 +351,23 @@ static AnConstant evaluate_expression(AstExpressionView v, Analysis* a) {
             type_id = an_types_get_id_or_insert(&a->types, type);
 
             function_id = *(AnFunctionId const*)id_hash_table_get(a->function_ids, v.id);
-            return (AnConstant) {
+            result = (AnConstant) {
                 .kind = AN_CONSTANT_FUNCTION,
                 .as.function = function_id,
                 .type = type_id,
             };
+            break;
 
         default:
             report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
             report_message("invalid constant expression");
             report_end();
-            return (AnConstant) { .kind = AN_CONSTANT_INVALID, .type = AN_TYPE_INVALID };
+            result = (AnConstant) { .kind = AN_CONSTANT_INVALID, .type = AN_TYPE_INVALID };
+            break;
     }
+
+    a->expression_types[v.id] = result.type;
+    return result;
 }
 
 static AnTypeId pattern_explicit_type(AstPatternView p, Analysis* a) {
