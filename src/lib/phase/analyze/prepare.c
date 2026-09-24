@@ -2,16 +2,45 @@
 
 #include "diagnostic/report.h"
 
-Analyzer analyzer_init(Analysis* a) {
-    return (Analyzer) {
+typedef struct AnPreparer {
+    Analysis* analysis;
+    AnScopeLocation scope_location;
+    AnBindingKind binding_kind;
+    AstBindingSetId binding_set;
+} AnPreparer;
+
+static void analyze_prepare_module(AnPreparer w, AstModuleView v);
+static void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteval);
+static void analyze_prepare_pattern(AnPreparer w, AstPatternView v);
+static void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v);
+
+void analyze_prepare(Analysis* a, bool consteval) {
+    free(a->expression_types);
+    a->expression_types = alloc_or_exit(ast_node_view_nodes(a->root).expressions.len * sizeof(AnTypeId));
+
+    AnPreparer w = {
         .analysis = a,
-        ._scope_location = { .scope = ID_SENTINEL },
-        ._binding_kind = AN_BINDING_CONSTANT,
-        ._binding_set = ID_SENTINEL,
+        .scope_location = { .scope = ID_SENTINEL },
+        .binding_kind = AN_BINDING_CONSTANT,
+        .binding_set = ID_SENTINEL,
     };
+    switch (a->root.kind) {
+        case AST_NODE_MODULE:
+            analyze_prepare_module(w, a->root.as.module);
+            break;
+        case AST_NODE_EXPRESSION:
+            analyze_prepare_expression(w, a->root.as.expression, consteval);
+            break;
+        case AST_NODE_PATTERN:
+            analyze_prepare_pattern(w, a->root.as.pattern);
+            break;
+        case AST_NODE_BINDING_SET:
+            analyze_prepare_binding_set(w, a->root.as.binding_set);
+            break;
+    }
 }
 
-void analyze_prepare_module(Analyzer w, AstModuleView v) {
+void analyze_prepare_module(AnPreparer w, AstModuleView v) {
     AnScopeId scope_id = an_new_scope(
         &w.analysis->scope_bindings,
         (AnScopeLocation) { .scope = ID_SENTINEL },
@@ -31,7 +60,7 @@ void analyze_prepare_module(Analyzer w, AstModuleView v) {
     };
     an_add_binding(&w.analysis->scope_bindings, scope_id, int_binding);
 
-    w._scope_location = an_scope_constant_location(scope_id);
+    w.scope_location = an_scope_constant_location(scope_id);
     for (
         AstBindingSetView b = AST_VIEW_CHILD_BINDING_SET(v, .binding_sets);
         b.data;
@@ -41,10 +70,10 @@ void analyze_prepare_module(Analyzer w, AstModuleView v) {
     }
 }
 
-void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly_constant) {
-    if (explicitly_constant) {
+void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteval) {
+    if (consteval) {
         // this expression and children can't reference a `let` binding from outside
-        w._scope_location = an_scope_constant_location(w._scope_location.scope);
+        w.scope_location = an_scope_constant_location(w.scope_location.scope);
 
         AnConstantItem constant_item = {
             .kind = AN_CONSTANT_ITEM_EXPRESSION,
@@ -60,8 +89,8 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
     AnBindingLocation binding_location;
     switch (v.data->kind) {
         case AST_EXPRESSION_BLOCK:
-            scope_id = an_new_scope(&w.analysis->scope_bindings, w._scope_location, false);
-            w._scope_location = an_scope_end_location(w.analysis->scope_bindings, scope_id);
+            scope_id = an_new_scope(&w.analysis->scope_bindings, w.scope_location, false);
+            w.scope_location = an_scope_end_location(w.analysis->scope_bindings, scope_id);
 
             for (
                 AstBindingSetView b = AST_VIEW_CHILD_BINDING_SET(v, .as.block.binding_sets);
@@ -70,7 +99,7 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
             ) {
                 analyze_prepare_binding_set(w, b);
                 // FIXME: is this the right place for this?
-                w._scope_location = an_scope_end_location(w.analysis->scope_bindings, scope_id);
+                w.scope_location = an_scope_end_location(w.analysis->scope_bindings, scope_id);
             }
 
             AstExpressionView tail = AST_VIEW_CHILD_EXPRESSION(v, .as.block.tail);
@@ -82,7 +111,7 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
 
         case AST_EXPRESSION_REFERENCE:
             binding_location = (AnBindingLocation) {
-                .location = w._scope_location,
+                .location = w.scope_location,
                 .binding = {0} // filled in during binding resolution
             };
             id_hash_table_insert(
@@ -107,16 +136,16 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
             // This effectively prevents captures.
             scope_id = an_new_scope(
                 &w.analysis->scope_bindings,
-                an_scope_constant_location(w._scope_location.scope),
+                an_scope_constant_location(w.scope_location.scope),
                 true
             );
-            w._scope_location = an_scope_end_location(w.analysis->scope_bindings, scope_id);
+            w.scope_location = an_scope_end_location(w.analysis->scope_bindings, scope_id);
 
-            w._binding_kind = AN_BINDING_VARIABLE;
-            w._binding_set = ID_SENTINEL;
+            w.binding_kind = AN_BINDING_VARIABLE;
+            w.binding_set = ID_SENTINEL;
             analyze_prepare_pattern(w, AST_VIEW_CHILD_PATTERN(v, .as.function.input));
             // FIXME: this probably isn't the right place for setting the scope location.
-            w._scope_location = an_scope_end_location(w.analysis->scope_bindings, w._scope_location.scope);
+            w.scope_location = an_scope_end_location(w.analysis->scope_bindings, w.scope_location.scope);
             analyze_prepare_expression(w, AST_VIEW_CHILD_EXPRESSION(v, .as.function.output), false);
 
             break;
@@ -141,7 +170,7 @@ void analyze_prepare_expression(Analyzer w, AstExpressionView v, bool explicitly
     }
 }
 
-void analyze_prepare_pattern(Analyzer w, AstPatternView v) {
+void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
     String name;
     AnBinding binding;
     AnBindingId binding_id;
@@ -149,11 +178,11 @@ void analyze_prepare_pattern(Analyzer w, AstPatternView v) {
     switch (v.data->kind) {
         case AST_PATTERN_VARIABLE:
             name = v.data->as.variable.identifier.string;
-            if (w._binding_kind == AN_BINDING_CONSTANT) {
+            if (w.binding_kind == AN_BINDING_CONSTANT) {
                 if (!an_find_binding_in_scope(
                     w.analysis->scope_bindings,
                     // FIXME: is this right?
-                    an_scope_constant_location(w._scope_location.scope),
+                    an_scope_constant_location(w.scope_location.scope),
                     name,
                     NULL
                 )) {
@@ -166,10 +195,10 @@ void analyze_prepare_pattern(Analyzer w, AstPatternView v) {
 
             binding = (AnBinding) {
                 .name = name,
-                .kind = w._binding_kind,
-                .source_binding_set = w._binding_set
+                .kind = w.binding_kind,
+                .source_binding_set = w.binding_set
             };
-            binding_id = an_add_binding(&w.analysis->scope_bindings, w._scope_location.scope, binding);
+            binding_id = an_add_binding(&w.analysis->scope_bindings, w.scope_location.scope, binding);
             id_hash_table_insert(&w.analysis->variable_bindings, v.id, &binding_id);
 
             type_bound = AST_VIEW_CHILD_EXPRESSION(v, .as.variable.type_bound);
@@ -181,10 +210,10 @@ void analyze_prepare_pattern(Analyzer w, AstPatternView v) {
     }
 }
 
-void analyze_prepare_binding_set(Analyzer w, AstBindingSetView v) {
+void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v) {
     switch (v.data->kind) {
-        case AST_BINDING_SET_CONSTANT: w._binding_kind = AN_BINDING_CONSTANT; break;
-        case AST_BINDING_SET_VARIABLE: w._binding_kind = AN_BINDING_VARIABLE; break;
+        case AST_BINDING_SET_CONSTANT: w.binding_kind = AN_BINDING_CONSTANT; break;
+        case AST_BINDING_SET_VARIABLE: w.binding_kind = AN_BINDING_VARIABLE; break;
     }
 
     if (v.data->kind == AST_BINDING_SET_CONSTANT) {
@@ -195,7 +224,7 @@ void analyze_prepare_binding_set(Analyzer w, AstBindingSetView v) {
         DYNAMIC_ARRAY_PUSH(&w.analysis->constant_items, item);
     }
 
-    w._binding_set = v.id;
+    w.binding_set = v.id;
     analyze_prepare_pattern(w, AST_VIEW_CHILD_PATTERN(v, .pattern));
     analyze_prepare_expression(w, AST_VIEW_CHILD_EXPRESSION(v, .value), v.data->kind == AST_BINDING_SET_CONSTANT);
 }

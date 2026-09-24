@@ -16,13 +16,11 @@ typedef enum Mark {
 // returns nonzero if a cycle was found or a binding wasn't resolved
 static int sort_constant_items(
     Analysis* a,
-    AstNodes ast,
     OUT(AnConstantItem) dst
 );
 
 static int sort_constant_items_visit(
     AnConstantItem item,
-    AstNodes nodes,
     IdHashTable* visited,
     Analysis* a,
     OUT(AnConstantItem)* dst
@@ -30,7 +28,6 @@ static int sort_constant_items_visit(
 
 static int sort_constant_items_visit_deps(
     AnConstantItem item,
-    AstNodes nodes,
     IdHashTable* visited,
     Analysis* a,
     OUT(AnConstantItem)* dst
@@ -59,7 +56,7 @@ static int sort_constant_items_visit_deps_pattern(
 
 static uint32_t constant_item_key(AnConstantItem item);
 
-static void evaluate_constant_item(AnConstantItem item, AstNodes nodes, Analysis* a);
+static void evaluate_constant_item(AnConstantItem item, Analysis* a);
 
 static AnConstant evaluate_expression(AstExpressionView, Analysis* a);
 
@@ -67,16 +64,16 @@ static AnTypeId pattern_explicit_type(AstPatternView p, Analysis* a);
 
 static void match_constant_to_pattern(AnConstant c, AstPatternView p, Analysis* a);
 
-void analyze_const(Analysis* a, AstNodes ast) {
+void analyze_const(Analysis* a) {
     BOXED(AnConstantItem) sorted_items =
         alloc_or_exit(a->constant_items.len * sizeof(AnConstantItem));
-    if (sort_constant_items(a, ast, sorted_items)) {
+    if (sort_constant_items(a, sorted_items)) {
         goto analyze_const_end;
     }
 
     for (size_t i = 0; i < a->constant_items.len; i++) {
         AnConstantItem item = sorted_items[i];
-        evaluate_constant_item(item, ast, a);
+        evaluate_constant_item(item, a);
     }
 
 analyze_const_end:
@@ -87,7 +84,6 @@ analyze_const_end:
 // returns nonzero iff a cycle was found
 static int sort_constant_items(
     Analysis* a,
-    AstNodes nodes,
     OUT(AnConstantItem) dst
 ) {
     AnConstantItems items = a->constant_items;
@@ -109,7 +105,7 @@ static int sort_constant_items(
         ) {
             continue;
         }
-        r |= sort_constant_items_visit(item, nodes, &visited, a, &next_item);
+        r |= sort_constant_items_visit(item, &visited, a, &next_item);
     }
 
     id_hash_table_free(&visited);
@@ -118,7 +114,6 @@ static int sort_constant_items(
 
 static int sort_constant_items_visit(
     AnConstantItem item,
-    AstNodes nodes,
     IdHashTable* visited,
     Analysis* a,
     OUT(AnConstantItem)* dst
@@ -135,7 +130,7 @@ static int sort_constant_items_visit(
 
     *mark = MARK_TEMPORARY;
 
-    int r = sort_constant_items_visit_deps(item, nodes, visited, a, dst);
+    int r = sort_constant_items_visit_deps(item, visited, a, dst);
 
     *mark = MARK_PERMANENT;
 
@@ -147,11 +142,11 @@ static int sort_constant_items_visit(
 
 static int sort_constant_items_visit_deps(
     AnConstantItem item,
-    AstNodes nodes,
     IdHashTable* visited,
     Analysis* a,
     OUT(AnConstantItem)* dst
 ) {
+    AstNodes nodes = ast_node_view_nodes(a->root);
     switch (item.kind) {
         case AN_CONSTANT_ITEM_EXPRESSION:
             return sort_constant_items_visit_deps_expression(
@@ -218,7 +213,7 @@ static int sort_constant_items_visit_deps_expression(
             // is already known
             if (binding.source_binding_set != ID_SENTINEL) {
                 item = (AnConstantItem) { .kind = AN_CONSTANT_ITEM_BINDING, .id = binding.source_binding_set };
-                r |= sort_constant_items_visit(item, v.nodes, visited, a, dst);
+                r |= sort_constant_items_visit(item, visited, a, dst);
             }
 
             break;
@@ -288,7 +283,8 @@ static uint32_t constant_item_key(AnConstantItem item) {
     return (item.id << 1) | (item.kind == AN_CONSTANT_ITEM_BINDING);
 }
 
-static void evaluate_constant_item(AnConstantItem item, AstNodes nodes, Analysis* a) {
+static void evaluate_constant_item(AnConstantItem item, Analysis* a) {
+    AstNodes nodes = ast_node_view_nodes(a->root);
     AnConstant value;
     AstBindingSetView binding_set;
     switch (item.kind) {

@@ -2,8 +2,9 @@
 
 #include "data/analysis.h"
 
-Analysis analysis_new(AstNodes nodes) {
+Analysis analysis_new(AstNodeView root) {
     return (Analysis) {
+        .root = root,
         .functions = {0},
         .function_ids = id_hash_table_new(sizeof(AnFunctionId)),
         .scope_bindings = an_scope_bindings_new(),
@@ -12,6 +13,6 @@ Analysis analysis_new(AstNodes nodes) {
         .constants = id_hash_table_new(sizeof(AnConstant)),
         .constant_items = {0},
         .types = an_types_default(),
-        .expression_types = alloc_or_exit(nodes.expressions.len * sizeof(AnTypeId)),
+        .expression_types = NULL,
     };
 }

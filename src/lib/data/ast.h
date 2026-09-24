@@ -15,3 +15,22 @@ typedef struct AstModuleView {
 } AstModuleView;
 
 void debug_ast_module(AstModuleView v);
+
+typedef enum AstNodeKind {
+    AST_NODE_MODULE,
+    AST_NODE_EXPRESSION,
+    AST_NODE_PATTERN,
+    AST_NODE_BINDING_SET,
+} AstNodeKind;
+
+typedef struct AstNodeView {
+    AstNodeKind kind;
+    union {
+        AstModuleView module;
+        AstExpressionView expression;
+        AstPatternView pattern;
+        AstBindingSetView binding_set;
+    } as;
+} AstNodeView;
+
+AstNodes ast_node_view_nodes(AstNodeView v);

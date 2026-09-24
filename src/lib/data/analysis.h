@@ -7,6 +7,7 @@
 #include "data/analysis/binding.h"
 
 typedef struct Analysis {
+    AstNodeView root;
     AnFunctions functions;
     AnFunctionIds function_ids;
     AnScopeBindings scope_bindings;
@@ -18,4 +19,4 @@ typedef struct Analysis {
     AnExpressionTypes expression_types;
 } Analysis;
 
-Analysis analysis_new(AstNodes nodes);
+Analysis analysis_new(AstNodeView root);

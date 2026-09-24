@@ -92,20 +92,25 @@ int main(int argc, char const** argv) {
         goto parse_error_end;
     }
 
-    Analysis analysis = analysis_new(ast_nodes);
+    Analysis analysis = analysis_new((AstNodeView) {
+        .kind = AST_NODE_MODULE,
+        .as.module = (AstModuleView) {
+            .data = &module,
+            .nodes = ast_nodes,
+        },
+    });
 
-    Analyzer w = analyzer_init(&analysis);
-    analyze_prepare_module(w, (AstModuleView) { .data = &module, .nodes = ast_nodes });
+    analyze_prepare(&analysis, false);
     if (report_count(SEVERITY_ERROR) > 0) {
         goto analyze_error_end;
     }
 
-    analyze_resolve_bindings(&analysis, ast_nodes);
+    analyze_resolve_bindings(&analysis);
     if (report_count(SEVERITY_ERROR) > 0) {
         goto analyze_error_end;
     }
 
-    analyze_const(&analysis, ast_nodes);
+    analyze_const(&analysis);
     if (report_count(SEVERITY_ERROR) > 0) {
         goto analyze_error_end;
     }

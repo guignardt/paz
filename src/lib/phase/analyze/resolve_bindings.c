@@ -2,7 +2,8 @@
 
 #include "diagnostic/report.h"
 
-void analyze_resolve_bindings(Analysis* a, AstNodes ast) {
+void analyze_resolve_bindings(Analysis* a) {
+    AstNodes ast = ast_node_view_nodes(a->root);
     AstExpressionId reference_id;
     AnBindingLocation* binding_location;
     for (
