@@ -5,7 +5,7 @@
 
 #include "testing.h"
 
-int test_ptr_hash_table(void) {
+int test_hash_table(void) {
     IdHashTable table = id_hash_table_new(sizeof(int));
     int val = 2;    TEST_ASSERT(!id_hash_table_insert(&table, 1, &val));
     val = 10;       TEST_ASSERT(!id_hash_table_insert(&table, 5, &val));
@@ -39,7 +39,7 @@ int test_ptr_hash_table(void) {
 }
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char const* argv[]) {
-    RUN_TEST(test_ptr_hash_table);
+    RUN_TEST(test_hash_table);
     finish_tests();
     return 0;
 }
