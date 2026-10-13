@@ -10,9 +10,10 @@ AnTypes an_types_new(void) {
 
 AnTypes an_types_default(void) {
     const AnType default_types[] = {
-        { .kind = AN_TYPE_INVALID },
-        { .kind = AN_TYPE_TYPE },
-        { .kind = AN_TYPE_INT },
+        { .kind = AN_TYPE_INVALID, .size = 0 },
+        { .kind = AN_TYPE_NEVER, .size = 0 },
+        { .kind = AN_TYPE_TYPE, .size = 1 },
+        { .kind = AN_TYPE_INT, .size = 1 },
     };
 
     AnTypes types = an_types_new();

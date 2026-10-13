@@ -7,6 +7,7 @@ typedef struct AnPreparer {
     AnScopeLocation scope_location;
     AnBindingKind binding_kind;
     AstBindingSetId binding_set;
+    AstPatternId pattern;
 } AnPreparer;
 
 static void analyze_prepare_module(AnPreparer w, AstModuleView v);
@@ -15,14 +16,20 @@ static void analyze_prepare_pattern(AnPreparer w, AstPatternView v);
 static void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v);
 
 void analyze_prepare(Analysis* a, bool consteval) {
+    // just not to leak memory, a->expression_types should be NULL here
     free(a->expression_types);
-    a->expression_types = alloc_or_exit(ast_node_view_nodes(a->root).expressions.len * sizeof(AnTypeId));
+    AstNodes ast = ast_node_view_nodes(a->root);
+    a->expression_types = alloc_or_exit(ast.expressions.len * sizeof(AnTypeId));
+    for (size_t i = 0; i < ast.expressions.len; i++) {
+        a->expression_types[i] = AN_TYPE_ID_INVALID;
+    }
 
     AnPreparer w = {
         .analysis = a,
         .scope_location = { .scope = ID_SENTINEL },
         .binding_kind = AN_BINDING_CONSTANT,
         .binding_set = ID_SENTINEL,
+        .pattern = ID_SENTINEL,
     };
     switch (a->root.kind) {
         case AST_NODE_MODULE:
@@ -55,7 +62,7 @@ void analyze_prepare_module(AnPreparer w, AstModuleView v) {
             .as.type = AN_TYPE_ID_INT,
             .type = AN_TYPE_ID_TYPE,
         },
-        .source_binding_set = ID_SENTINEL,
+        .source = { .kind = AN_BINDING_SOURCE_BUILTIN },
         .type = AN_TYPE_ID_TYPE,
     };
     an_add_binding(&w.analysis->scope_bindings, scope_id, int_binding);
@@ -171,7 +178,12 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
 }
 
 void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
+    if (w.pattern == ID_SENTINEL) {
+        w.pattern = v.id;
+    }
+
     String name;
+    BindingSource binding_source;
     AnBinding binding;
     AnBindingId binding_id;
     AstExpressionView type_bound;
@@ -193,10 +205,22 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
                 }
             }
 
+            if (w.binding_set != ID_SENTINEL) {
+                binding_source = (BindingSource) {
+                    .kind = AN_BINDING_SOURCE_BINDING_SET,
+                    .as.binding_set = w.binding_set,
+                };
+            } else {
+                binding_source = (BindingSource) {
+                    .kind = AN_BINDING_SOURCE_TYPED_PATTERN,
+                    .as.typed_pattern = w.pattern,
+                };
+            }
             binding = (AnBinding) {
                 .name = name,
                 .kind = w.binding_kind,
-                .source_binding_set = w.binding_set
+                .source = binding_source,
+                .type = AN_TYPE_ID_INVALID,
             };
             binding_id = an_add_binding(&w.analysis->scope_bindings, w.scope_location.scope, binding);
             id_hash_table_insert(&w.analysis->variable_bindings, v.id, &binding_id);
@@ -208,6 +232,8 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
 
             break;
     }
+
+    w.pattern = ID_SENTINEL;
 }
 
 void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v) {
@@ -226,5 +252,6 @@ void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v) {
 
     w.binding_set = v.id;
     analyze_prepare_pattern(w, AST_VIEW_CHILD_PATTERN(v, .pattern));
+    w.binding_kind = ID_SENTINEL;
     analyze_prepare_expression(w, AST_VIEW_CHILD_EXPRESSION(v, .value), v.data->kind == AST_BINDING_SET_CONSTANT);
 }

@@ -3,6 +3,8 @@
 #include "data/analysis.h"
 
 Analysis analysis_new(AstNodeView root) {
+    AstNodes ast = ast_node_view_nodes(root);
+
     return (Analysis) {
         .root = root,
         .functions = {0},
@@ -13,6 +15,7 @@ Analysis analysis_new(AstNodeView root) {
         .constants = id_hash_table_new(sizeof(AnConstant)),
         .constant_items = {0},
         .types = an_types_default(),
-        .expression_types = NULL,
+        .expression_types = alloc_or_exit(ast.expressions.len * sizeof(AnTypeId)),
+        .pattern_types = alloc_or_exit(ast.patterns.len * sizeof(AnTypeId)),
     };
 }

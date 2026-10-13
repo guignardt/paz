@@ -13,10 +13,12 @@ typedef struct Analysis {
     AnScopeBindings scope_bindings;
     AnReferenceBindingLocations reference_binding_locations;
     AnVariableBindings variable_bindings;
+    AnPatternBindingSets pattern_binding_sets;
     AnConstants constants;
     AnConstantItems constant_items;
     AnTypes types;
     AnExpressionTypes expression_types;
+    AnPatternTypes pattern_types;
 } Analysis;
 
 Analysis analysis_new(AstNodeView root);

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
+
+#include "util/id.h"
 
 typedef Id AnTypeId;
 
