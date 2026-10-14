@@ -26,7 +26,7 @@ typedef struct AnBinding {
         AnConstant constant;
         AnVariable variable;
     } as;
-    AstPatternId pattern;
+    AstPatternId top_level_pattern;
     AnTypeId type;
 } AnBinding;
 
@@ -62,4 +62,4 @@ typedef IdHashTable /* expression (reference) -> `AnBindingLocation` */
 
 typedef IdHashTable /* pattern (variable) -> `AnBindingId` */ AnVariableBindings;
 
-typedef IdHashTable /* pattern -> `AstBindingId` */ AnPatternBindingSets;
+typedef AstBindingSetId* AnPatternBindingSets;

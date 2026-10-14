@@ -5,6 +5,4 @@
 
 void analyze_prepare(Analysis* a, bool consteval);
 void analyze_resolve_bindings(Analysis* a);
-void analyze_const(Analysis* a);
-void analyze_types(Analysis* a);
 void analyze_evaluate(Analysis* a);

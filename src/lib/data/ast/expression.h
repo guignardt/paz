@@ -19,8 +19,7 @@ typedef struct AstFunction {
 } AstFunction;
 
 typedef enum AstUnaryOperator {
-    AST_OPERATOR_BREAK,
-    AST_OPERATOR_CONTINUE,
+    AST_OPERATOR_NEG,
 } AstUnaryOperator;
 
 typedef struct AstUnaryOperation {
