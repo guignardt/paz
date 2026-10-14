@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 
 #include "phase/analyze.h"
 #include "diagnostic/report.h"
@@ -56,31 +57,45 @@ static EvResult ev_binding_set_type(AstBindingSetView v, Evaluator* ev);
 
 static EvResult ev_binding_set_value(AstBindingSetView v, Evaluator* ev);
 
+#define STOP_ON_CYCLE(v) do {                           \
+    if (v == EV_RESULT_CYCLE) {                         \
+        report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE); \
+        report_message("found evaluation cycle");       \
+        report_end();                                   \
+        return;                                         \
+    }                                                   \
+} while (0)
+
 void analyze_evaluate(Analysis* a) {
     AstNodes nodes = ast_node_view_nodes(a->root);
 
+    BOXED(uint8_t) expression_types = alloc_or_exit(nodes.expressions.len * sizeof(uint8_t));
+    memset(expression_types, EV_STATUS_NONE, nodes.expressions.len);
+    BOXED(uint8_t) pattern_types = alloc_or_exit(nodes.patterns.len * sizeof(uint8_t));
+    memset(pattern_types, EV_STATUS_NONE, nodes.patterns.len);
+
     Evaluator ev = {
         .analysis = a,
-        .expression_types = alloc_or_exit(nodes.expressions.len * sizeof(uint8_t)),
+        .expression_types = expression_types,
         .expression_values = id_hash_table_new(sizeof(uint8_t)),
-        .pattern_types = alloc_or_exit(nodes.patterns.len * sizeof(uint8_t)),
+        .pattern_types = pattern_types,
         .pattern_values = id_hash_table_new(sizeof(uint8_t)),
     };
 
     for (AstBindingSetId id = 0; id < nodes.binding_sets.len; id++) {
-        ev_binding_set_type(AST_VIEW_BINDING_SET(nodes, id), &ev);
+        STOP_ON_CYCLE(ev_binding_set_type(AST_VIEW_BINDING_SET(nodes, id), &ev));
     }
     for (AstPatternId id = 0; id < nodes.patterns.len; id++) {
-        ev_pattern_type(AST_VIEW_PATTERN(nodes, id), &ev);
+        STOP_ON_CYCLE(ev_pattern_type(AST_VIEW_PATTERN(nodes, id), &ev));
     }
     for (AstExpressionId id = 0; id < nodes.expressions.len; id++) {
-        ev_expression_type(AST_VIEW_EXPRESSION(nodes, id), &ev);
+        STOP_ON_CYCLE(ev_expression_type(AST_VIEW_EXPRESSION(nodes, id), &ev));
     }
 }
 
 static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev) {
     switch (ev->expression_types[v.id]) {
-        case EV_STATUS_NONE: ev->expression_types[v.id] = EV_STATUS_STARTED;
+        case EV_STATUS_NONE: ev->expression_types[v.id] = EV_STATUS_STARTED; break;
         case EV_STATUS_STARTED: return EV_RESULT_CYCLE;
         case EV_STATUS_SUCCESS: return EV_RESULT_SUCCESS;
         case EV_STATUS_ERROR: return EV_RESULT_ERROR;
@@ -132,8 +147,9 @@ static EvResult ev_block_type(AstExpressionView v, Evaluator* ev) {
 }
 
 static EvResult ev_reference_type(AstExpressionView v, Evaluator* ev) {
-    AnBindingId bid = *(AnBindingId const*)
+    AnBindingLocation const* binding_location = (AnBindingLocation const*)
         id_hash_table_get(ev->analysis->reference_binding_locations, v.id);
+    AnBindingId bid = binding_location->binding;
     AnBinding b = *an_get_binding(ev->analysis->scope_bindings, bid);
 
     EvResult r = EV_RESULT_SUCCESS;
@@ -143,7 +159,8 @@ static EvResult ev_reference_type(AstExpressionView v, Evaluator* ev) {
     }
     // otherwise we have a built-in, type is already computed
 
-    ev->analysis->expression_types[v.id] = an_get_binding(ev->analysis->scope_bindings, bid)->type;
+    AnTypeId type = an_get_binding(ev->analysis->scope_bindings, bid)->type;
+    ev->analysis->expression_types[v.id] = type;
     return r;
 }
 
@@ -166,9 +183,9 @@ static EvResult ev_function_type(AstExpressionView v, Evaluator* ev) {
             report_message("type bound didn't evaluate to type");
             report_end();
         } else {
-            if (value.type != output_type) {
+            if (value.as.type != output_type) {
                 report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
-                report_message("type mismatch");
+                report_message("type mismatch in function output");
                 report_end();
             }
             output_type = value.type;
@@ -301,7 +318,10 @@ static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev) {
     uint8_t const* ps = id_hash_table_get(ev->expression_values, v.id);
     EvStatus s = (ps) ? *ps : EV_STATUS_NONE;
     switch (s) {
-        case EV_STATUS_NONE: ev->pattern_types[v.id] = EV_STATUS_STARTED;
+        case EV_STATUS_NONE:
+            s = EV_STATUS_STARTED;
+            id_hash_table_insert(&ev->expression_values, v.id, &s);
+            break;
         case EV_STATUS_STARTED: return EV_RESULT_CYCLE;
         case EV_STATUS_SUCCESS: return EV_RESULT_SUCCESS;
         case EV_STATUS_ERROR: return EV_RESULT_ERROR;
@@ -342,8 +362,9 @@ static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev) {
 }
 
 static EvResult ev_reference_value(AstExpressionView v, Evaluator* ev) {
-    AnBindingId bid = *(AnBindingId const*)
+    AnBindingLocation const* binding_location = (AnBindingLocation const*)
         id_hash_table_get(ev->analysis->reference_binding_locations, v.id);
+    AnBindingId bid = binding_location->binding;
     AnBinding b = *an_get_binding(ev->analysis->scope_bindings, bid);
 
     EvResult r = EV_RESULT_SUCCESS;
@@ -375,7 +396,7 @@ static EvResult ev_function_value(AstExpressionView v, Evaluator* ev) {
 
 static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
     switch (ev->pattern_types[v.id]) {
-        case EV_STATUS_NONE: ev->pattern_types[v.id] = EV_STATUS_STARTED;
+        case EV_STATUS_NONE: ev->pattern_types[v.id] = EV_STATUS_STARTED; break;
         case EV_STATUS_STARTED: return EV_RESULT_CYCLE;
         case EV_STATUS_SUCCESS: return EV_RESULT_SUCCESS;
         case EV_STATUS_ERROR: return EV_RESULT_ERROR;
@@ -396,7 +417,7 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
         case AST_PATTERN_VARIABLE:
             type_bound = AST_VIEW_CHILD_EXPRESSION(v, .as.variable.type_bound);
             if (type_bound.data) {
-                SUB_EV(ev_expression_value(AST_VIEW_CHILD_EXPRESSION(binding_set, .value), ev), r);
+                SUB_EV(ev_expression_value(type_bound, ev), r);
                 type_bound_value = *(AnConstant const*)
                     id_hash_table_get(ev->analysis->constants, type_bound.id);
                 if (type_bound_value.kind != AN_CONSTANT_TYPE) {

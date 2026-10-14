@@ -11,6 +11,7 @@ typedef struct Analysis {
     AnFunctions functions;
     AnFunctionIds function_ids;
     AnScopeBindings scope_bindings;
+    AnScopeId builtin_scope;
     AnReferenceBindingLocations reference_binding_locations;
     AnVariableBindings variable_bindings;
     AnPatternBindingSets pattern_binding_sets;

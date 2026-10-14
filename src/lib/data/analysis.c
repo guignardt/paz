@@ -18,6 +18,25 @@ Analysis analysis_new(AstNodeView root) {
         pattern_types[i] = ID_SENTINEL;
     }
 
+    AnScopeBindings scope_bindings = an_scope_bindings_new();
+    AnScopeId builtin_scope = an_new_scope(
+        &scope_bindings,
+        (AnScopeLocation) { .scope = ID_SENTINEL },
+        false
+    );
+    AnBinding int_binding = {
+        .name = (String) { .data = "Int", .len = 3 },
+        .kind = AN_BINDING_CONSTANT,
+        .as.constant = (AnConstant) {
+            .kind = AN_CONSTANT_TYPE,
+            .as.type = AN_TYPE_ID_INT,
+            .type = AN_TYPE_ID_TYPE,
+        },
+        .top_level_pattern = ID_SENTINEL,
+        .type = AN_TYPE_ID_TYPE,
+    };
+    an_add_binding(&scope_bindings, builtin_scope, int_binding);
+
     return (Analysis) {
         .root = root,
         .functions = {0},

@@ -100,32 +100,65 @@ int main(int argc, char const** argv) {
         },
     });
 
+#if DEBUG_ANALYSIS
+    eprintf("\n=== ANALYSIS ===\n");
+#endif
+
     analyze_prepare(&analysis, false);
     if (report_count(SEVERITY_ERROR) > 0) {
         goto analyze_error_end;
     }
+
+#if DEBUG_ANALYSIS
+    {
+        eprintf("\n--- function ids ---\n");
+        AstExpressionId key;
+        AnFunctionId const* p_value;
+        for (
+            IdHashTableIt it = id_hash_table_it(analysis.function_ids);
+            (p_value = id_hash_table_it_next(&it, &key));
+        ) {
+            eprintf("%u: %u\n", (unsigned int)key, (unsigned int)(*p_value));
+        }
+    }
+#endif
 
     analyze_resolve_bindings(&analysis);
     if (report_count(SEVERITY_ERROR) > 0) {
         goto analyze_error_end;
     }
 
-    analyze_const(&analysis);
+#if DEBUG_ANALYSIS
+    {
+        eprintf("\n--- references ---\n");
+        AstExpressionId key;
+        AnBindingLocation const* p_value;
+        for (
+            IdHashTableIt it = id_hash_table_it(analysis.reference_binding_locations);
+            (p_value = id_hash_table_it_next(&it, &key));
+        ) {
+            AnBinding binding = *an_get_binding(analysis.scope_bindings, p_value->binding);
+            eprintf(
+                "reference %u -> `%.*s` declared in pattern %u\n",
+                (unsigned int)key,
+                (int)binding.name.len, binding.name.data,
+                (unsigned int)binding.top_level_pattern
+            );
+        }
+    }
+#endif
+
+    analyze_evaluate(&analysis);
     if (report_count(SEVERITY_ERROR) > 0) {
         goto analyze_error_end;
     }
 
 #if DEBUG_ANALYSIS
-    eprintf("\n=== ANALYSIS ===\n");
-
-    eprintf("\n--- function ids ---\n");
-    AstExpressionId key;
-    AnFunctionId const* p_value;
-    for (
-        IdHashTableIt it = id_hash_table_it(analysis.function_ids);
-        (p_value = id_hash_table_it_next(&it, &key));
-    ) {
-        eprintf("%u: %u\n", (unsigned int)key, (unsigned int)(*p_value));
+    {
+        eprintf("\n--- expression types ---\n");
+        for (AstExpressionId i = 0; i < ast_nodes.expressions.len; i++) {
+            eprintf("%u: %u\n", (unsigned int)i, (unsigned int)analysis.expression_types[i]);
+        }
     }
 #endif
 

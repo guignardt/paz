@@ -16,17 +16,9 @@ static void analyze_prepare_pattern(AnPreparer w, AstPatternView v);
 static void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v);
 
 void analyze_prepare(Analysis* a, bool consteval) {
-    // just not to leak memory, a->expression_types should be NULL here
-    free(a->expression_types);
-    AstNodes ast = ast_node_view_nodes(a->root);
-    a->expression_types = alloc_or_exit(ast.expressions.len * sizeof(AnTypeId));
-    for (size_t i = 0; i < ast.expressions.len; i++) {
-        a->expression_types[i] = AN_TYPE_ID_INVALID;
-    }
-
     AnPreparer w = {
         .analysis = a,
-        .scope_location = { .scope = ID_SENTINEL },
+        .scope_location = an_scope_constant_location(a->builtin_scope),
         .binding_kind = AN_BINDING_CONSTANT,
         .binding_set = ID_SENTINEL,
         .top_level_pattern = ID_SENTINEL,
@@ -50,7 +42,7 @@ void analyze_prepare(Analysis* a, bool consteval) {
 void analyze_prepare_module(AnPreparer w, AstModuleView v) {
     AnScopeId scope_id = an_new_scope(
         &w.analysis->scope_bindings,
-        (AnScopeLocation) { .scope = ID_SENTINEL },
+        an_scope_constant_location(w.analysis->builtin_scope),
         false
     );
     

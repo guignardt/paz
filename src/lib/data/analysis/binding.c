@@ -44,7 +44,7 @@ AnBinding const* an_get_binding(AnScopeBindings bindings, AnBindingId id) {
     if (id._constant) {
         return &bindings._scopes.data[id.scope].constant_bindings.data[id._index];
     } else {
-        return &bindings._scopes.data[id.scope].constant_bindings.data[id._index];
+        return &bindings._scopes.data[id.scope].variable_bindings.data[id._index];
     }
 }
 
@@ -52,7 +52,7 @@ AnBinding* an_get_binding_mut(AnScopeBindings* bindings, AnBindingId id) {
         if (id._constant) {
         return &bindings->_scopes.data[id.scope].constant_bindings.data[id._index];
     } else {
-        return &bindings->_scopes.data[id.scope].constant_bindings.data[id._index];
+        return &bindings->_scopes.data[id.scope].variable_bindings.data[id._index];
     }
 }
 
