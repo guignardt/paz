@@ -21,22 +21,3 @@ typedef struct AnConstant {
 } AnConstant;
 
 typedef IdHashTable /* expression -> `AnConstant` */ AnConstants;
-
-typedef enum AnConstantItemKind {
-    AN_CONSTANT_ITEM_EXPRESSION_TYPE,
-    AN_CONSTANT_ITEM_EXPRESSION,
-    AN_CONSTANT_ITEM_PATTERN,
-    AN_CONSTANT_ITEM_BINDING,
-} AnConstantItemKind;
-
-typedef struct AnConstantItem {
-    unsigned int kind : 2; // `AnConstantItemKind`
-    Id id : 30; // `AstExpressionId` or `AstBindingSetId`
-} AnConstantItem;
-
-typedef struct AnConstantItems {
-    DYNAMIC_ARRAY(AstExpressionId) expression_types;
-    DYNAMIC_ARRAY(AstExpressionId) expressions;
-    DYNAMIC_ARRAY(AstExpressionId) patterns;
-    DYNAMIC_ARRAY(AstExpressionId) binding_sets;
-} AnConstantItems;

@@ -62,4 +62,4 @@ typedef IdHashTable /* expression (reference) -> `AnBindingLocation` */
 
 typedef IdHashTable /* pattern (variable) -> `AnBindingId` */ AnVariableBindings;
 
-typedef AstBindingSetId* AnPatternBindingSets;
+typedef BOXED(AstBindingSetId) AnPatternBindingSets;

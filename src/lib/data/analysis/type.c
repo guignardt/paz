@@ -36,6 +36,7 @@ bool an_type_eq(AnType a, AnType b) {
     if (a.kind != b.kind) return false;
     switch (a.kind) {
         case AN_TYPE_INVALID:
+        case AN_TYPE_NEVER:
         case AN_TYPE_TYPE:
         case AN_TYPE_INT:
             return true;

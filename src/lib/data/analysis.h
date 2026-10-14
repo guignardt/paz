@@ -15,7 +15,6 @@ typedef struct Analysis {
     AnVariableBindings variable_bindings;
     AnPatternBindingSets pattern_binding_sets;
     AnConstants constants;
-    AnConstantItems constant_items;
     AnTypes types;
     AnExpressionTypes expression_types;
     AnPatternTypes pattern_types;

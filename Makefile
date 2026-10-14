@@ -2,7 +2,7 @@
 # `$ make lib PROFILE=release`
 PROFILE := debug
 
-CFLAGS := -Wall -Wextra -Wno-sign-compare
+CFLAGS := -Wall -Wextra -Werror -Wno-sign-compare
 ARFLAGS := rcs
 
 ifeq ($(PROFILE),debug)

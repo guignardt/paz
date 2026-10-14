@@ -7,7 +7,7 @@ typedef struct AnPreparer {
     AnScopeLocation scope_location;
     AnBindingKind binding_kind;
     AstBindingSetId binding_set;
-    AstPatternId pattern;
+    AstPatternId top_level_pattern;
 } AnPreparer;
 
 static void analyze_prepare_module(AnPreparer w, AstModuleView v);
@@ -29,7 +29,7 @@ void analyze_prepare(Analysis* a, bool consteval) {
         .scope_location = { .scope = ID_SENTINEL },
         .binding_kind = AN_BINDING_CONSTANT,
         .binding_set = ID_SENTINEL,
-        .pattern = ID_SENTINEL,
+        .top_level_pattern = ID_SENTINEL,
     };
     switch (a->root.kind) {
         case AST_NODE_MODULE:
@@ -62,7 +62,7 @@ void analyze_prepare_module(AnPreparer w, AstModuleView v) {
             .as.type = AN_TYPE_ID_INT,
             .type = AN_TYPE_ID_TYPE,
         },
-        .source = { .kind = AN_BINDING_SOURCE_BUILTIN },
+        .top_level_pattern = ID_SENTINEL,
         .type = AN_TYPE_ID_TYPE,
     };
     an_add_binding(&w.analysis->scope_bindings, scope_id, int_binding);
@@ -81,12 +81,6 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
     if (consteval) {
         // this expression and children can't reference a `let` binding from outside
         w.scope_location = an_scope_constant_location(w.scope_location.scope);
-
-        AnConstantItem constant_item = {
-            .kind = AN_CONSTANT_ITEM_EXPRESSION,
-            .id = v.id,
-        };
-        DYNAMIC_ARRAY_PUSH(&w.analysis->constant_items, constant_item);
     }
 
     AnScopeId scope_id;
@@ -178,12 +172,16 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
 }
 
 void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
-    if (w.pattern == ID_SENTINEL) {
-        w.pattern = v.id;
+    if (w.top_level_pattern == ID_SENTINEL) {
+        w.top_level_pattern = v.id;
+    }
+    if (w.top_level_pattern == v.id) {
+        if (w.binding_set != ID_SENTINEL) {
+            w.analysis->pattern_binding_sets[v.id] = w.binding_set;
+        }
     }
 
     String name;
-    BindingSource binding_source;
     AnBinding binding;
     AnBindingId binding_id;
     AstExpressionView type_bound;
@@ -205,21 +203,10 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
                 }
             }
 
-            if (w.binding_set != ID_SENTINEL) {
-                binding_source = (BindingSource) {
-                    .kind = AN_BINDING_SOURCE_BINDING_SET,
-                    .as.binding_set = w.binding_set,
-                };
-            } else {
-                binding_source = (BindingSource) {
-                    .kind = AN_BINDING_SOURCE_TYPED_PATTERN,
-                    .as.typed_pattern = w.pattern,
-                };
-            }
             binding = (AnBinding) {
                 .name = name,
                 .kind = w.binding_kind,
-                .source = binding_source,
+                .top_level_pattern = w.top_level_pattern,
                 .type = AN_TYPE_ID_INVALID,
             };
             binding_id = an_add_binding(&w.analysis->scope_bindings, w.scope_location.scope, binding);
@@ -233,21 +220,13 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
             break;
     }
 
-    w.pattern = ID_SENTINEL;
+    w.top_level_pattern = ID_SENTINEL;
 }
 
 void analyze_prepare_binding_set(AnPreparer w, AstBindingSetView v) {
     switch (v.data->kind) {
         case AST_BINDING_SET_CONSTANT: w.binding_kind = AN_BINDING_CONSTANT; break;
         case AST_BINDING_SET_VARIABLE: w.binding_kind = AN_BINDING_VARIABLE; break;
-    }
-
-    if (v.data->kind == AST_BINDING_SET_CONSTANT) {
-        AnConstantItem item = {
-            .kind = AN_CONSTANT_ITEM_BINDING,
-            .id = v.id,
-        };
-        DYNAMIC_ARRAY_PUSH(&w.analysis->constant_items, item);
     }
 
     w.binding_set = v.id;

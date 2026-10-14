@@ -35,6 +35,27 @@ typedef struct Evaluator {
     }                                                       \
 } while(0);
 
+static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_block_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_reference_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_function_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_unary_operation_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_binary_operation_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_conditional_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev);
+
+static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev);
+static EvResult ev_reference_value(AstExpressionView v, Evaluator* ev);
+static EvResult ev_function_value(AstExpressionView v, Evaluator* ev);
+
+static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev);
+
+static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev);
+
+static EvResult ev_binding_set_type(AstBindingSetView v, Evaluator* ev);
+
+static EvResult ev_binding_set_value(AstBindingSetView v, Evaluator* ev);
+
 void analyze_evaluate(Analysis* a) {
     AstNodes nodes = ast_node_view_nodes(a->root);
 
@@ -56,27 +77,6 @@ void analyze_evaluate(Analysis* a) {
         ev_expression_type(AST_VIEW_EXPRESSION(nodes, id), &ev);
     }
 }
-
-static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_block_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_reference_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_function_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_unary_operation_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_binary_operation_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_conditional_type(AstExpressionView v, Evaluator* ev);
-static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev);
-
-static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev);
-static EvResult ev_reference_value(AstExpressionView v, Evaluator* ev);
-static EvResult ev_function_value(AstExpressionView v, Evaluator* ev);
-
-static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev);
-
-static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev);
-
-static EvResult ev_binding_set_type(AstBindingSetView v, Evaluator* ev);
-
-static EvResult ev_binding_set_value(AstBindingSetView v, Evaluator* ev);
 
 static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev) {
     switch (ev->expression_types[v.id]) {
@@ -294,6 +294,7 @@ static EvResult ev_conditional_type(AstExpressionView v, Evaluator* ev) {
 
 static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev) {
     ev->analysis->expression_types[v.id] = AN_TYPE_ID_INT;
+    return EV_RESULT_SUCCESS;
 }
 
 static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev) {
@@ -318,7 +319,6 @@ static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev) {
         return EV_RESULT_ERROR;
     }
 
-    AnConstant value;
     switch (v.data->kind) {
         case AST_EXPRESSION_REFERENCE: r = ev_reference_value(v, ev); break;
         case AST_EXPRESSION_FUNCTION: r = ev_function_value(v, ev); break;
@@ -399,7 +399,7 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
                 SUB_EV(ev_expression_value(AST_VIEW_CHILD_EXPRESSION(binding_set, .value), ev), r);
                 type_bound_value = *(AnConstant const*)
                     id_hash_table_get(ev->analysis->constants, type_bound.id);
-                if (type_bound_value.kind != AN_TYPE_TYPE) {
+                if (type_bound_value.kind != AN_CONSTANT_TYPE) {
                     report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
                     report_message("type bound didn't evaluate to type");
                     report_end();
@@ -510,6 +510,7 @@ static EvResult ev_binding_set_type(AstBindingSetView v, Evaluator* ev) {
     }
 }
 
+[[maybe_unused]]
 static EvResult ev_binding_set_value(AstBindingSetView v, Evaluator* ev) {
     assert(v.data->kind == AST_BINDING_SET_CONSTANT);
     return ev_pattern_value(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);

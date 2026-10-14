@@ -11,13 +11,13 @@ typedef enum Precedence {
     PRECEDENCE_COMPARE,
     PRECEDENCE_ADD,
     PRECEDENCE_MUL,
+    PRECEDENCE_NEG,
     PRECEDENCE_CALL,
     PRECEDENCE_ATOM,
 } Precedence;
 
 Precedence unary_operator_precedence[] = {
-    [AST_OPERATOR_BREAK] = PRECEDENCE_FLOW,
-    [AST_OPERATOR_CONTINUE] = PRECEDENCE_FLOW,
+    [AST_OPERATOR_NEG] = PRECEDENCE_NEG,
 };
 
 Precedence binary_operator_precedence[] = {
@@ -46,9 +46,6 @@ typedef struct TokenOperatorEntry {
 } TokenOperatorEntry;
 
 TokenOperatorEntry token_operators[] = {
-    [TOKEN_BREAK] =         { TOKEN_OPERATOR_ENTRY_PREFIX, AST_OPERATOR_BREAK },
-    [TOKEN_CONTINUE] =      { TOKEN_OPERATOR_ENTRY_PREFIX, AST_OPERATOR_CONTINUE },
-
     [TOKEN_EQUAL_EQUAL] =   { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_EQ },
     [TOKEN_BANG_EQUAL] =    { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_NE },
     [TOKEN_LESS_EQUAL] =    { TOKEN_OPERATOR_ENTRY_INFIX, AST_OPERATOR_LE },
