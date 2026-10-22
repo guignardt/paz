@@ -6,9 +6,11 @@
 #include "data/analysis/id.h"
 #include "data/analysis/id_hash_table.h"
 
+#include "data/bytecode.h"
+
 typedef struct AnFunction {
     AstExpressionId expression;
-    uint32_t stack_space;
+    BytecodeVar stack_space; // FIXME: compute this!
 } AnFunction;
 
 typedef DYNAMIC_ARRAY(AnFunction, AnFunctions) AnFunctions;

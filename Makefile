@@ -46,6 +46,6 @@ test_run: test
 $(BUILD_DIR)/%.d: src/%.c
 	mkdir -p $(@D)
 	$(CC) $(CPPFLAGS) -MM $< -MT $(patsubst %.d,%.o,$@) -o $@
-	echo '	$$(CC) -c $$(CPPFLAGS) $$(CFLAGS) $$< -o $$@' >> $@
+	echo '	$$(CC) -c $$(CPPFLAGS) $$(CFLAGS) $$(filter %.c,$$^) -o $$@' >> $@
 
 include $(SUBFILES)

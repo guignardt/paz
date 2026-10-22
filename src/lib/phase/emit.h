@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "data/bytecode.h"
 
 typedef uint32_t EmitterSymbol;
@@ -7,6 +9,7 @@ typedef uint32_t EmitterSymbol;
 typedef struct Emitter {
     Bytecode _bytecode;
     DYNAMIC_ARRAY(BytecodeLoc) _symbol_locations;
+    DYNAMIC_ARRAY(BytecodeLoc) _reference_locations;
 } Emitter;
 
 Emitter emitter_new(void);
@@ -31,6 +34,7 @@ FOR_SYSCALLS
 #undef PROC
 
 EmitterSymbol emit_symbol(Emitter* emitter);
-void emit_symbol_location(Emitter* emitter, EmitterSymbol symbol);
+// returns true on replace
+bool emit_symbol_location(Emitter* emitter, EmitterSymbol symbol);
 
 Bytecode emit_finish(Emitter* emitter);

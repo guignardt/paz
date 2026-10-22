@@ -1,3 +1,5 @@
+#include "util/alloc.h"
+
 #include "testing.h"
 
 static unsigned int total = 0;

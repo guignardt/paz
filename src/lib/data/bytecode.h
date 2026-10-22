@@ -5,6 +5,10 @@
 typedef uint16_t BytecodeVar;
 typedef uint64_t BytecodeLoc;
 
+typedef struct BytecodeVarRange {
+    BytecodeVar start, end;
+} BytecodeVarRange;
+
 typedef union Word {
     int64_t as_int;
     BytecodeLoc as_loc;
@@ -125,5 +129,7 @@ typedef struct BytecodeOp {
     BytecodeArg arg;
 } BytecodeOp;
 
-BytecodeOp bytecode_read(uint8_t const** cursor);
-void bytecode_push(Bytecode* bc, BytecodeOp op);
+uint64_t bytecode_read_uint64(uint8_t const** cursor);
+BytecodeOp bytecode_read_op(uint8_t const** cursor);
+
+void bytecode_push_op(Bytecode* bc, BytecodeOp op);

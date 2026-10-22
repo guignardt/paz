@@ -8,7 +8,7 @@ static uint8_t read_uint8(uint8_t const** bc);
 static uint16_t read_uint16(uint8_t const** bc);
 static uint64_t read_uint64(uint8_t const** bc);
 
-void bytecode_push(Bytecode* bc, BytecodeOp op) {
+void bytecode_push_op(Bytecode* bc, BytecodeOp op) {
     push_uint8(bc, op.opcode);
     if (op.opcode == OP_SYS) {
         push_uint8(bc, op.syscall);
@@ -24,6 +24,10 @@ void bytecode_push(Bytecode* bc, BytecodeOp op) {
 #define read_int read_uint64
 #define read_loc read_uint64
 #define read_var read_uint16
+
+uint64_t bytecode_read_uint64(uint8_t const** bc) {
+    return read_uint64(bc);
+}
 
 BytecodeOp bytecode_read(uint8_t const** bc) {
     // FIXME: what to do

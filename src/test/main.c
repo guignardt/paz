@@ -1,7 +1,11 @@
 #include <stdio.h>
+#include <string.h>
 
-#include "diagnostic/log.h"
+#include "diagnostic/report.h"
+
 #include "data/analysis/id_hash_table.h"
+
+#include "phase/assemble.h"
 
 #include "testing.h"
 
@@ -38,8 +42,44 @@ int test_hash_table(void) {
     return 0;
 }
 
+int test_assemble(void) {
+    char const* assembly[] = {
+       "    nop",
+       "    res %1",
+       "    int #4",
+       "    set %0",
+       ":start",
+       "    int #3",
+       "    int #-2",
+       "    nei",
+       "    jmpnz :start",
+    };
+    uint8_t expected_bytecode[] = {
+            OP_NOP,
+            OP_RES, 1, 0,
+            OP_INT, 4, 0, 0, 0, 0, 0, 0, 0,
+            OP_SET, 0, 0,
+        [16] =
+            OP_INT, 3, 0, 0, 0, 0, 0, 0, 0,
+            OP_INT, -2, -1, -1, -1, -1, -1, -1, -1,
+            OP_NEI,
+            OP_JMPNZ, 16, 0, 0, 0, 0, 0, 0, 0,
+    };
+    Bytecode computed_bytecode = assemble(assembly, sizeof(assembly) / sizeof(char const*));
+
+    TEST_ASSERT(report_count(SEVERITY_ERROR) == 0);
+    TEST_ASSERT(computed_bytecode.len == sizeof(expected_bytecode));
+    TEST_ASSERT(!memcmp(expected_bytecode, computed_bytecode.data, sizeof(expected_bytecode)));
+
+    return 0;
+}
+
 int main([[maybe_unused]] int argc, [[maybe_unused]] char const* argv[]) {
+    set_reporter(default_reporter());
+
     RUN_TEST(test_hash_table);
+    RUN_TEST(test_assemble);
     finish_tests();
+
     return 0;
 }

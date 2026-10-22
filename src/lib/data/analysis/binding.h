@@ -7,11 +7,14 @@
 #include "data/analysis/constant.h"
 #include "data/analysis/id_hash_table.h"
 
+#include "data/bytecode.h"
+
 #include "util/alloc.h"
 #include "util/string.h"
 
 typedef struct AnVariable {
-    Range registers;
+    // FIXME: compute this!
+    BytecodeVarRange range;
 } AnVariable;
 
 typedef enum AnBindingKind {
