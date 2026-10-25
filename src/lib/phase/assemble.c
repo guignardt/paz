@@ -11,11 +11,6 @@ typedef struct Assembler {
     DYNAMIC_ARRAY(String) symbol_names;
 } Assembler;
 
-typedef union {
-    char string[8];
-    uint64_t bits;
-} Mnemo;
-
 static void assemble_line(char const* line, Assembler* a);
 static int parse_line(char const* line, Assembler* a, OUT(BytecodeOp) dst);
 static int parse_int(char const** s, OUT(int64_t) dst);
@@ -40,11 +35,6 @@ Bytecode assemble(char const* const* lines, size_t line_count) {
     free(a.symbol_names.data);
     return emit_finish(&a.emitter);
 }
-
-#define PROC(mnemo, code, ...) [code] = { .string = #mnemo },
-static Mnemo opcode_mnemos[] = { FOR_OPS };
-static Mnemo syscall_mnemos[] = { FOR_SYSCALLS };
-#undef PROC
 
 static void assemble_line(char const* line, Assembler* a) {
     BytecodeOp op;

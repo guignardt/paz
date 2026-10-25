@@ -92,6 +92,19 @@ typedef enum Syscall {
     PROC(exit, SYS_EXIT)        \
     PROC(debug, SYS_DEBUG, var) \
 
+
+typedef union {
+    char string[8];
+    uint64_t bits;
+} Mnemo;
+
+#define PROC(mnemo, code, ...) + 1
+
+extern Mnemo opcode_mnemos[1 FOR_OPS];
+extern Mnemo syscall_mnemos[0 FOR_OPS];
+
+#undef PROC
+
 typedef enum BytecodeArgKind {
     BYTECODE_ARG_NONE,
     BYTECODE_ARG_INT,
@@ -131,5 +144,4 @@ typedef struct BytecodeOp {
 
 uint64_t bytecode_read_uint64(uint8_t const** cursor);
 BytecodeOp bytecode_read_op(uint8_t const** cursor);
-
 void bytecode_push_op(Bytecode* bc, BytecodeOp op);

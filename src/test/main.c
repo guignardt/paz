@@ -6,6 +6,7 @@
 #include "data/analysis/id_hash_table.h"
 
 #include "phase/assemble.h"
+#include "phase/disassemble.h"
 
 #include "testing.h"
 
@@ -71,6 +72,49 @@ int test_assemble(void) {
     TEST_ASSERT(computed_bytecode.len == sizeof(expected_bytecode));
     TEST_ASSERT(!memcmp(expected_bytecode, computed_bytecode.data, sizeof(expected_bytecode)));
 
+    free(computed_bytecode.data);
+
+    return 0;
+}
+
+int test_disassemble(void) {
+    Bytecode bytecode = {0};
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_RES, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 2 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_INT, .arg = { .kind = BYTECODE_ARG_INT, .as.int_ = 5 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_SET, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_VAR, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_INT, .arg = { .kind = BYTECODE_ARG_INT, .as.int_ = 0 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_GTI });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_JMPNZ, .arg = { .kind = BYTECODE_ARG_LOC, .as.loc = 62 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_VAR, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_INT, .arg = { .kind = BYTECODE_ARG_INT, .as.int_ = -1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_ADDI });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_SET, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_JMP, .arg = { .kind = BYTECODE_ARG_LOC, .as.loc = 15 } });
+    
+    char expected_disassembly[] =
+        "    res %2\n"
+        "    int #5\n"
+        "    set %1\n"
+        ":L15\n"
+        "    var %1\n"
+        "    int #0\n"
+        "    gti\n"
+        "    jmpnz :L62\n"
+        "    var %1\n"
+        "    int #-1\n"
+        "    addi\n"
+        "    set %1\n"
+        "    jmp :L15\n"
+        ":L62\n"
+    ;
+
+    BOXED(char) computed_disassembly = disassemble(bytecode);
+
+    TEST_ASSERT(!strcmp(computed_disassembly, expected_disassembly));
+
+    free(computed_disassembly);
+
     return 0;
 }
 
@@ -79,6 +123,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char const* argv[]) {
 
     RUN_TEST(test_hash_table);
     RUN_TEST(test_assemble);
+    RUN_TEST(test_disassemble);
     finish_tests();
 
     return 0;

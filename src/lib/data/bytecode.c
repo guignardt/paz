@@ -8,6 +8,11 @@ static uint8_t read_uint8(uint8_t const** bc);
 static uint16_t read_uint16(uint8_t const** bc);
 static uint64_t read_uint64(uint8_t const** bc);
 
+#define PROC(mnemo, code, ...) [code] = { .string = #mnemo },
+Mnemo opcode_mnemos[] = { [OP_SYS] = { .string = "sys" }, FOR_OPS };
+Mnemo syscall_mnemos[] = { FOR_SYSCALLS };
+#undef PROC
+
 void bytecode_push_op(Bytecode* bc, BytecodeOp op) {
     push_uint8(bc, op.opcode);
     if (op.opcode == OP_SYS) {
@@ -29,7 +34,7 @@ uint64_t bytecode_read_uint64(uint8_t const** bc) {
     return read_uint64(bc);
 }
 
-BytecodeOp bytecode_read(uint8_t const** bc) {
+BytecodeOp bytecode_read_op(uint8_t const** bc) {
     // FIXME: what to do
 
     BytecodeOp op = {0};
@@ -44,12 +49,12 @@ BytecodeOp bytecode_read(uint8_t const** bc) {
     #define ARG_FIELD_var op.arg.as.var
 
     #define PROC(mnemo, code, ...)                                  \
-        __VA_OPT__(                                                 \
-            case code:                                              \
+        case code:                                                  \
+            __VA_OPT__(                                             \
                 op.arg.kind = ARG_KIND_##__VA_ARGS__;               \
                 ARG_FIELD_##__VA_ARGS__ = read_##__VA_ARGS__(bc);   \
-                break;                                              \
-        )
+            )                                                       \
+            break;                                                  \
     
     switch (op.opcode) {
         FOR_OPS
