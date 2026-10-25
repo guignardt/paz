@@ -413,6 +413,7 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
     AnConstant type_bound_value;
     AnTypeId type_id = AN_TYPE_INVALID;
     AnBindingId binding_id;
+    AnBinding* binding;
     switch (v.data->kind) {
         case AST_PATTERN_VARIABLE:
             type_bound = AST_VIEW_CHILD_EXPRESSION(v, .as.variable.type_bound);
@@ -449,7 +450,14 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
 
             binding_id = *(AnBindingId const*)
                 id_hash_table_get(ev->analysis->variable_bindings, v.id);
-            an_get_binding_mut(&ev->analysis->scope_bindings, binding_id)->type = type_id;
+            binding = an_get_binding_mut(&ev->analysis->scope_bindings, binding_id);
+            binding->type = type_id;
+            if (binding->kind == AN_BINDING_VARIABLE) {
+                AnType type = an_types_get(ev->analysis->types, type_id);
+                AnFunction* function = &ev->analysis->functions.data[binding->as.variable.function];
+                binding->as.variable.range = (BytecodeVarRange) { function->stack_space, function->stack_space + type.size };
+                function->stack_space += type.size;
+            }
 
             break;
     }
@@ -476,15 +484,9 @@ static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev) {
         case EV_STATUS_ERROR: return EV_RESULT_ERROR;
     }
 
-    AnConstant invalid = {
-        .kind = AN_CONSTANT_INVALID,
-        .type = AN_TYPE_INVALID,
-    };
-
     EvResult r = EV_RESULT_SUCCESS;
     SUB_EV(ev_pattern_type(v, ev), r);
     if (r == EV_RESULT_ERROR) {
-        id_hash_table_insert(&ev->analysis->constants, v.id, &invalid);
         return EV_RESULT_ERROR;
     }
 

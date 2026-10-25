@@ -13,6 +13,7 @@
 #include "util/string.h"
 
 typedef struct AnVariable {
+    AnFunctionId function;
     // FIXME: compute this!
     BytecodeVarRange range;
 } AnVariable;

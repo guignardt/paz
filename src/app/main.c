@@ -11,12 +11,15 @@
 #include "phase/tokenize.h"
 #include "phase/parse.h"
 #include "phase/analyze.h"
+#include "phase/compile.h"
+#include "phase/disassemble.h"
 
 #define DEBUG_SOURCE_CODE   0
 #define DEBUG_LINE_INDICES  0
 #define DEBUG_TOKENS        0
 #define DEBUG_AST           1
-#define DEBUG_ANALYSIS      1
+#define DEBUG_ANALYSIS      0
+#define DEBUG_DISASSEMBLY   1
 
 int main(int argc, char const** argv) {
     set_reporter(default_reporter());
@@ -162,6 +165,26 @@ int main(int argc, char const** argv) {
     }
 #endif
 
+    Bytecode bytecode = compile(ast_nodes, analysis);
+    if (report_count(SEVERITY_ERROR) > 0) {
+        goto compile_error_end;
+    }
+    BOXED(char) disassembly = disassemble(bytecode);
+    if (report_count(SEVERITY_ERROR) > 0) {
+        goto disassembly_error_end;
+    }
+
+#if DEBUG_DISASSEMBLY
+    {
+        eprintf("\n--- disassembly ---\n");
+        eprintf("%s", disassembly);
+    }
+#endif
+
+disassembly_error_end:
+    free(disassembly);
+compile_error_end:
+    free(bytecode.data);
 analyze_error_end:
     // TODO: free analysis
 parse_error_end:

@@ -116,6 +116,8 @@ static void sort_locs(BytecodeLoc* data, size_t len) {
 }
 
 static size_t dedup_locs(BytecodeLoc* data, size_t len) {
+    if (len == 0) return 0;
+
     size_t w = 0;
     for (size_t i = 1; i < len; i++) {
         if (data[i] != data[w]) {

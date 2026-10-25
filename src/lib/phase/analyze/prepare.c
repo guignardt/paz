@@ -8,6 +8,7 @@ typedef struct AnPreparer {
     AnBindingKind binding_kind;
     AstBindingSetId binding_set;
     AstPatternId top_level_pattern;
+    AnFunctionId function;
 } AnPreparer;
 
 static void analyze_prepare_module(AnPreparer w, AstModuleView v);
@@ -22,6 +23,7 @@ void analyze_prepare(Analysis* a, bool consteval) {
         .binding_kind = AN_BINDING_CONSTANT,
         .binding_set = ID_SENTINEL,
         .top_level_pattern = ID_SENTINEL,
+        .function = ID_SENTINEL,
     };
     switch (a->root.kind) {
         case AST_NODE_MODULE:
@@ -136,6 +138,7 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
 
             w.binding_kind = AN_BINDING_VARIABLE;
             w.binding_set = ID_SENTINEL;
+            w.function = function_id;
             analyze_prepare_pattern(w, AST_VIEW_CHILD_PATTERN(v, .as.function.input));
             // FIXME: this probably isn't the right place for setting the scope location.
             w.scope_location = an_scope_end_location(w.analysis->scope_bindings, w.scope_location.scope);
@@ -201,6 +204,9 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
                 .top_level_pattern = w.top_level_pattern,
                 .type = AN_TYPE_ID_INVALID,
             };
+            if (w.binding_kind == AN_BINDING_VARIABLE) {
+                binding.as.variable.function = w.function;
+            }
             binding_id = an_add_binding(&w.analysis->scope_bindings, w.scope_location.scope, binding);
             id_hash_table_insert(&w.analysis->variable_bindings, v.id, &binding_id);
 

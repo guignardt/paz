@@ -30,7 +30,7 @@ void reserve(BOXED(void)* p_buf, size_t* p_cap, size_t len, size_t size);
     DYNAMIC_ARRAY_PUSH_PARTS(&(arr)->data, &(arr)->len, &(arr)->cap, elt)
 
 #define DYNAMIC_ARRAY_PUSH_PARTS(data, len, cap, elt) do {      \
-    reserve(ERASE2(data), (cap), *(len) + 1, sizeof(elt));      \
+    reserve(ERASE2(data), (cap), *(len) + 1, sizeof(**data));   \
     (*(data))[(*(len))++] = elt;                                \
 } while(0);
 
