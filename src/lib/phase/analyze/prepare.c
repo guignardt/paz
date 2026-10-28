@@ -163,6 +163,8 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
 
         case AST_EXPRESSION_LITERAL_INT:
             break;
+
+        case AST_EXPRESSION_TUPLE: exit(-1); break; // TODO
     }
 }
 

@@ -71,6 +71,8 @@ static ParseStatus parse_expression_try_continue(
 
 // takes in the contents of the parenthesized expression
 static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressionId) dst);
+static ParseStatus parse_block(Parser p, Range range, OUT(AstExpressionId) dst);
+static ParseStatus parse_tuple(Parser p, Range range, OUT(AstExpressionId) dst);
 static void ast_ref_new(Parser p, Range identifier, OUT(AstExpressionId) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpressionId) dst);
@@ -262,70 +264,151 @@ static void ast_ref_new(Parser p, Range range, OUT(AstExpressionId) dst) {
 }
 
 static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressionId) dst) {
-    AstBindingSetId binding_sets = ID_SENTINEL;
-    AstExpressionId tail = ID_SENTINEL;
-    
-    // parse bindings
     TokenTree head;
-    AstBindingSetId previous = ID_SENTINEL;
-    while (!token_it_get(*p.tokens, &head)) {
-        if (head.kind != TOKEN_TREE_SINGLE) {
+    if (token_it_get(*p.tokens, &head)) {
+        AstExpression v = {
+            .next = ID_SENTINEL,
+            .range = range,
+            .kind = AST_EXPRESSION_TUPLE,
+            .as.tuple = (AstTuple) {
+                .elements = ID_SENTINEL
+            }
+        };
+        AstExpressionId id = box_expression(p, v);
+        if (dst) *dst = id;
+        return PARSE_OK;
+    }
+
+    if (
+        head.kind == TOKEN_TREE_SINGLE
+        && (head.as.single.kind == TOKEN_LET || head.as.single.kind == TOKEN_CONST)
+    ) {
+        return parse_block(p, range, dst);
+    } else {
+        return parse_tuple(p, range, dst);
+    }
+}
+
+static ParseStatus parse_block(Parser p, Range range, OUT(AstExpressionId) dst) {
+    AstBlock block = { .binding_sets = ID_SENTINEL, .tail = ID_SENTINEL };
+    AstBindingSetId last_binding_set = ID_SENTINEL;
+
+    while (true) {
+        TokenTree head;
+        if (token_it_get(*p.tokens, &head)) {
             break;
         }
-
+        if (head.kind != TOKEN_TREE_SINGLE) break;
         if (head.as.single.kind == TOKEN_SEMICOLON) {
             token_it_next(p.tokens, NULL);
             continue;
         }
-
-        if (head.as.single.kind != TOKEN_CONST && head.as.single.kind != TOKEN_LET) {
+        if (head.as.single.kind != TOKEN_LET && head.as.single.kind != TOKEN_CONST) {
             break;
         }
-        AstBindingSetId binding;
-        ParseStatus status = parse_binding_set(p, &binding);
-        if (binding != ID_SENTINEL) {
-            // *write_binding_set_ids = binding_set_id;
-            // write_binding_set_ids = &p.nodes->binding_sets[binding_set_id].next;
-            if (previous == ID_SENTINEL) {
-                binding_sets = binding;
-            } else {
-                p.nodes->binding_sets.data[previous].next = binding;
+
+        AstBindingSetId bs;
+        bool ill = parse_binding_set(p, &bs);
+        if (!ill && token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {
+            ill = true;
+            unexpected_token();
+        }
+        if (ill) {
+            while (true) {
+                TokenTree token;
+                if (token_it_next(p.tokens, &token)) break;
+                if (token.kind == TOKEN_TREE_SINGLE && token.as.single.kind == TOKEN_SEMICOLON) break;
             }
-            previous = binding;
+        }
+        if (bs == ID_SENTINEL) {
+            continue;
         }
 
-        if (token_it_match_single(p.tokens, TOKEN_SEMICOLON, NULL)) {
-            // if status is not ok, we have already reported an error when
-            // parsing the binding
-            if (status == PARSE_OK) {
-                unexpected_token();
-            }
-            token_it_find_single(p.tokens, TOKEN_SEMICOLON, NULL);
+        if (block.binding_sets == ID_SENTINEL) {
+            block.binding_sets = bs;
+        } else {
+            p.nodes->binding_sets.data[last_binding_set].next = bs;
         }
+        last_binding_set = bs;
     }
 
     if (!token_it_end(*p.tokens)) {
-        ParseStatus status = parse_expression(p, &tail);
-        if (!status && !token_it_end(*p.tokens)) {
+        ParseStatus tail_status = parse_expression(p, &block.tail);
+        if (tail_status == PARSE_OK && !token_it_end(*p.tokens)) {
             unexpected_token();
         }
     }
 
+    AstExpression v = {
+        .next = ID_SENTINEL,
+        .range = range,
+        .kind = AST_EXPRESSION_BLOCK,
+        .as.block = block,
+    };
+    AstExpressionId id = box_expression(p, v);
+    if (dst) *dst = id;
+    // FIXME: is this always right?
+    return PARSE_OK;
+}
+
+static ParseStatus parse_tuple(Parser p, Range range, OUT(AstExpressionId) dst) {
+    AstTuple tuple = { .elements = ID_SENTINEL };
+    AstExpressionId last_element = ID_SENTINEL;
+    bool parsed_comma = false;
+    while (true) {
+        if (token_it_end(*p.tokens)) {
+            break;
+        }
+
+        AstExpressionId elt;
+        bool ill = parse_expression(p, &elt);
+        if (!ill ) {
+            bool parsed_comma2 = !token_it_match_single(p.tokens, TOKEN_COMMA, NULL);
+            parsed_comma |= parsed_comma2;
+            if (!parsed_comma2 && !token_it_end(*p.tokens)) {
+                unexpected_token();
+                ill = true;
+            }
+        }
+        if (ill) {
+            TokenTree token;
+            while (!token_it_next(p.tokens, &token)) {
+                if (token.kind == TOKEN_TREE_SINGLE && token.as.single.kind == TOKEN_COMMA) {
+                    parsed_comma = true;
+                    break;
+                }
+            }
+            continue;
+        }
+
+        if (elt == ID_SENTINEL) {
+            continue;
+        }
+
+        if (tuple.elements == ID_SENTINEL) {
+            tuple.elements = elt;
+            last_element = elt;
+        } else {
+            p.nodes->expressions.data[last_element].next = elt;
+            last_element = elt;
+        }
+    }
+
     AstExpressionId id;
-    if (binding_sets == ID_SENTINEL) id = tail;
-    else {
-        AstExpression block = {
+    if (tuple.elements != ID_SENTINEL && !parsed_comma) {
+        id = tuple.elements;
+    } else {
+        AstExpression v = {
             .next = ID_SENTINEL,
             .range = range,
-            .kind = AST_EXPRESSION_BLOCK,
-            .as.block = (AstBlock) {
-                .binding_sets = binding_sets,
-                .tail = tail,
-            },
+            .kind = AST_EXPRESSION_TUPLE,
+            .as.tuple = tuple
         };
-        id = box_expression(p, block);
+        id = box_expression(p, v);
     }
+    
     if (dst) *dst = id;
+    // FIXME: is this always right?
     return PARSE_OK;
 }
 

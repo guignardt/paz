@@ -56,6 +56,10 @@ typedef struct AstConditional {
     AstExpressionId if_false;
 } AstConditional;
 
+typedef struct AstTuple {
+    AstExpressionId elements; // list
+} AstTuple;
+
 typedef enum AstExpressionKind {
     AST_EXPRESSION_BLOCK,
     AST_EXPRESSION_REFERENCE,
@@ -63,6 +67,7 @@ typedef enum AstExpressionKind {
     AST_EXPRESSION_UNARY_OPERATION,
     AST_EXPRESSION_BINARY_OPERATION,
     AST_EXPRESSION_CONDITIONAL,
+    AST_EXPRESSION_TUPLE,
     AST_EXPRESSION_LITERAL_INT,
 } AstExpressionKind;
 
@@ -79,6 +84,7 @@ typedef struct AstExpression {
         AstUnaryOperation unary_operation;
         AstBinaryOperation binary_operation;
         AstConditional conditional;
+        AstTuple tuple;
         int64_t literal_int;
     } as;
 } AstExpression;

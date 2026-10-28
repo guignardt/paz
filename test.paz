@@ -1,5 +1,9 @@
 const main = fn (a: Int) -> Int => (
     let foo = a - 2 * a;
+    let pair = (1, 2);
+    let triple_trailing = (3, 4, 5,);
+    let singleton = (10,);
+    let unit = ();
     if 42 == foo % a then 3 else a + 2
 );
 

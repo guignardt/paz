@@ -110,6 +110,7 @@ static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev) {
         case AST_EXPRESSION_BINARY_OPERATION: r = ev_binary_operation_type(v, ev); break;
         case AST_EXPRESSION_CONDITIONAL: r = ev_conditional_type(v, ev); break;
         case AST_EXPRESSION_LITERAL_INT: r = ev_literal_int_type(v, ev); break;
+        case AST_EXPRESSION_TUPLE: exit(-1); break; // TODO
     }
 
     switch (r) {

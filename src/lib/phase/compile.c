@@ -71,6 +71,7 @@ static void comp_expression(AstExpressionView v, Compiler a) {
         case AST_EXPRESSION_BINARY_OPERATION: comp_expression_binary_operation(v, a); break;
         case AST_EXPRESSION_CONDITIONAL: comp_expression_conditional(v, a); break;
         case AST_EXPRESSION_LITERAL_INT: comp_expression_literal_int(v, a); break;
+        case AST_EXPRESSION_TUPLE: exit(-1); break; // TODO
     }
 }
 
