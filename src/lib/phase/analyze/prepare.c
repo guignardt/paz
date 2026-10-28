@@ -212,12 +212,14 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
             binding_id = an_add_binding(&w.analysis->scope_bindings, w.scope_location.scope, binding);
             id_hash_table_insert(&w.analysis->variable_bindings, v.id, &binding_id);
 
-            type_bound = AST_VIEW_CHILD_EXPRESSION(v, .as.variable.type_bound);
+            type_bound = AST_VIEW_CHILD_EXPRESSION(v, .type_bound);
             if (type_bound.data) {
                 analyze_prepare_expression(w, type_bound, true);
             }
 
             break;
+
+        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
     }
 
     w.top_level_pattern = ID_SENTINEL;

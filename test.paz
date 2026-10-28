@@ -8,3 +8,5 @@ const main = fn (a: Int) -> Int => (
 );
 
 const bar = fn (a: Int) -> Int => (a);
+
+const add = fn (a: Int, b: Int) -> Int => a + b;

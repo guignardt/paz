@@ -417,7 +417,7 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
     AnBinding* binding;
     switch (v.data->kind) {
         case AST_PATTERN_VARIABLE:
-            type_bound = AST_VIEW_CHILD_EXPRESSION(v, .as.variable.type_bound);
+            type_bound = AST_VIEW_CHILD_EXPRESSION(v, .type_bound);
             if (type_bound.data) {
                 SUB_EV(ev_expression_value(type_bound, ev), r);
                 type_bound_value = *(AnConstant const*)
@@ -461,6 +461,8 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
             }
 
             break;
+
+        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
     }
 
     switch (r) {
@@ -511,6 +513,9 @@ static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev) {
             binding = an_get_binding_mut(&ev->analysis->scope_bindings, binding_id);
             binding->kind = AN_BINDING_CONSTANT;
             binding->as.constant = value;
+            break;
+        
+        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
     }
 
     switch (r) {

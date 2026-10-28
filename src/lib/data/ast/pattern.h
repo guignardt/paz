@@ -4,11 +4,15 @@
 
 typedef struct AstPatternVariable {
     AstIdentifier identifier;
-    AstExpressionId type_bound; // optional
 } AstPatternVariable;
+
+typedef struct AstPatternTuple {
+    AstPatternId elements; // list
+} AstPatternTuple;
 
 typedef enum AstPatternKind {
     AST_PATTERN_VARIABLE,
+    AST_PATTERN_TUPLE,
 } AstPatternKind;
 
 typedef struct AstPattern {
@@ -19,7 +23,9 @@ typedef struct AstPattern {
     AstPatternKind kind;
     union {
         AstPatternVariable variable;
+        AstPatternTuple tuple;
     } as;
+    AstExpressionId type_bound; // optional
 } AstPattern;
 
 typedef struct AstPatternView {

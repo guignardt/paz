@@ -190,6 +190,8 @@ static void comp_pattern(AstPatternView v, Compiler a) {
                 emit_set(a.emitter, i);
             }
             break;
+
+        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
     }
 }
 

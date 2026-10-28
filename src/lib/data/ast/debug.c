@@ -171,16 +171,33 @@ void debug_ast_pattern(AstPatternView p) {
 
     switch (v.kind) {
         case AST_PATTERN_VARIABLE:
-            debug_begin("variable");
+            debug_begin("variable pattern");
             debug_attr_int("id", p.id);
             
             debug_attr_string("identifier", v.as.variable.identifier.string);
 
-            debug_attr_begin("type name");
-            debug_ast_expression(AST_VIEW_CHILD_EXPRESSION(p, .as.variable.type_bound));
-            debug_attr_end();
+            break;
 
-            debug_end();
+        case AST_PATTERN_TUPLE:
+            debug_begin("tuple pattern");
+            debug_attr_int("id", p.id);
+
+            debug_attr_begin_list("elements");
+            for (
+                AstPatternView e = AST_VIEW_CHILD_PATTERN(p, .as.tuple.elements);
+                e.data;
+                e = AST_VIEW_CHILD_PATTERN(e, .next)
+            ) {
+                debug_ast_pattern(e);
+            }
+            debug_attr_end_list();
+
             break;
     }
+
+    debug_attr_begin("type bound");
+    debug_ast_expression(AST_VIEW_CHILD_EXPRESSION(p, .type_bound));
+    debug_attr_end();
+
+    debug_end();
 }
