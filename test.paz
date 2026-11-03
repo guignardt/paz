@@ -4,6 +4,7 @@ const main = fn (a: Int) -> Int => (
     let triple_trailing = (3, 4, 5,);
     let singleton = (10,);
     let unit = ();
+    let (x, y) = (3, 4);
     if 42 == foo % a then 3 else a + 2
 );
 

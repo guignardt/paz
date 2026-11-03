@@ -14,6 +14,7 @@ AnTypes an_types_default(void) {
         { .kind = AN_TYPE_NEVER, .size = 0 },
         { .kind = AN_TYPE_TYPE, .size = 1 },
         { .kind = AN_TYPE_INT, .size = 1 },
+        { .kind = AN_TYPE_TUPLE, .size = 0, .as.tuple = { .elements = NULL, .len = 0 } },
     };
 
     AnTypes types = an_types_new();
@@ -34,23 +35,61 @@ AnType an_types_get(AnTypes types, AnTypeId id) {
 
 bool an_type_eq(AnType a, AnType b) {
     if (a.kind != b.kind) return false;
+
     switch (a.kind) {
         case AN_TYPE_INVALID:
         case AN_TYPE_NEVER:
         case AN_TYPE_TYPE:
         case AN_TYPE_INT:
             return true;
+
         case AN_TYPE_FUNCTION:
             return a.as.function.input == b.as.function.input
                 && a.as.function.output == b.as.function.output;
+
+        case AN_TYPE_TUPLE:
+            if (a.as.tuple.len != b.as.tuple.len) {
+                return false;
+            }
+            for (size_t i = 0; i < a.as.tuple.len; i++) {
+                if (a.as.tuple.elements[i] != b.as.tuple.elements[i]) {
+                    return false;
+                }
+            }
+            return true;
     }
 }
 
 AnTypeId an_types_get_id_or_insert(AnTypes* types, AnType type) {
     for (AnTypeId i = 0; i < types->_types.len; i++) {
         AnType elt = types->_types.data[i];
-        if (an_type_eq(elt, type)) return i;
+        if (an_type_eq(elt, type)) {
+            if (type.kind == AN_TYPE_TUPLE) {
+                free(type.as.tuple.elements);
+            }
+            return i;
+        }
     }
+
+    size_t size;
+    switch (type.kind) {
+        case AN_TYPE_INVALID:
+        case AN_TYPE_NEVER:
+            size = 0;
+            break;
+        case AN_TYPE_TYPE:
+        case AN_TYPE_INT:
+        case AN_TYPE_FUNCTION: // TODO: captures
+            size = 1;
+            break;
+        case AN_TYPE_TUPLE:
+            size = 0;
+            for (size_t i = 0; i < type.as.tuple.len; i++) {
+                size += types->_types.data[type.as.tuple.elements[i]].size;
+            }
+            break;
+    }
+    type.size = size;
 
     AnTypeId id = types->_types.len;
     DYNAMIC_ARRAY_PUSH(&types->_types, type);

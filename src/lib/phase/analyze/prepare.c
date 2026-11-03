@@ -161,10 +161,18 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
             analyze_prepare_expression(w, AST_VIEW_CHILD_EXPRESSION(v, .as.conditional.if_false), false);
             break;
 
-        case AST_EXPRESSION_LITERAL_INT:
+        case AST_EXPRESSION_TUPLE:
+            for (
+                AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(v, .as.tuple.elements);
+                e.data;
+                e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+            ) {
+                analyze_prepare_expression(w, e, false);
+            }
             break;
 
-        case AST_EXPRESSION_TUPLE: exit(-1); break; // TODO
+        case AST_EXPRESSION_LITERAL_INT:
+            break;
     }
 }
 
@@ -219,7 +227,15 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
 
             break;
 
-        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
+        case AST_PATTERN_TUPLE:
+            for (
+                AstPatternView e = AST_VIEW_CHILD_PATTERN(v, .as.tuple.elements);
+                e.data;
+                e = AST_VIEW_CHILD_PATTERN(e, .next)
+            ) {
+                analyze_prepare_pattern(w, e);
+            }
+            break;
     }
 
     w.top_level_pattern = ID_SENTINEL;

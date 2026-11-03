@@ -43,15 +43,22 @@ static EvResult ev_function_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_unary_operation_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_binary_operation_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_conditional_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_tuple_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev);
 
 static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev);
 static EvResult ev_reference_value(AstExpressionView v, Evaluator* ev);
 static EvResult ev_function_value(AstExpressionView v, Evaluator* ev);
 
-static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev);
+static EvResult ev_top_pattern_type(AstPatternView v, Evaluator* ev);
+static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev, AnTypeId inherited);
+static EvResult ev_pat_variable_type(AstPatternView v, Evaluator* ev, AnTypeId inherited);
+static EvResult ev_pat_tuple_type(AstPatternView v, Evaluator* ev, AnTypeId inherited);
 
-static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev);
+static EvResult ev_top_pattern_value(AstPatternView v, Evaluator* ev);
+static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev, AnConstant inherited);
+static EvResult ev_pat_variable_value(AstPatternView v, Evaluator* ev, AnConstant inherited);
+static EvResult ev_pat_tuple_value(AstPatternView v, Evaluator* ev, AnConstant inherited);
 
 static EvResult ev_binding_set_type(AstBindingSetView v, Evaluator* ev);
 
@@ -85,12 +92,15 @@ void analyze_evaluate(Analysis* a) {
     for (AstBindingSetId id = 0; id < nodes.binding_sets.len; id++) {
         STOP_ON_CYCLE(ev_binding_set_type(AST_VIEW_BINDING_SET(nodes, id), &ev));
     }
-    for (AstPatternId id = 0; id < nodes.patterns.len; id++) {
-        STOP_ON_CYCLE(ev_pattern_type(AST_VIEW_PATTERN(nodes, id), &ev));
-    }
     for (AstExpressionId id = 0; id < nodes.expressions.len; id++) {
         STOP_ON_CYCLE(ev_expression_type(AST_VIEW_EXPRESSION(nodes, id), &ev));
     }
+    // FIXME: do we need to evaluate patterns explicitly?
+
+    free(ev.expression_types);
+    id_hash_table_free(&ev.expression_values);
+    free(ev.pattern_types);
+    id_hash_table_free(&ev.pattern_values);
 }
 
 static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev) {
@@ -109,13 +119,13 @@ static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev) {
         case AST_EXPRESSION_UNARY_OPERATION: r = ev_unary_operation_type(v, ev); break;
         case AST_EXPRESSION_BINARY_OPERATION: r = ev_binary_operation_type(v, ev); break;
         case AST_EXPRESSION_CONDITIONAL: r = ev_conditional_type(v, ev); break;
+        case AST_EXPRESSION_TUPLE: r = ev_tuple_type(v, ev); break;
         case AST_EXPRESSION_LITERAL_INT: r = ev_literal_int_type(v, ev); break;
-        case AST_EXPRESSION_TUPLE: exit(-1); break; // TODO
     }
 
     switch (r) {
-        case EV_RESULT_SUCCESS: ev->expression_types[v.id] = EV_STATUS_SUCCESS;
-        case EV_RESULT_ERROR: ev->expression_types[v.id] = EV_STATUS_ERROR;
+        case EV_RESULT_SUCCESS: ev->expression_types[v.id] = EV_STATUS_SUCCESS; break;
+        case EV_RESULT_ERROR: ev->expression_types[v.id] = EV_STATUS_ERROR; break;
         default: break;
     }
 
@@ -156,7 +166,7 @@ static EvResult ev_reference_type(AstExpressionView v, Evaluator* ev) {
     EvResult r = EV_RESULT_SUCCESS;
     AstPatternView pattern = AST_VIEW_PATTERN(v.nodes, b.top_level_pattern);
     if (pattern.data) {
-        SUB_EV(ev_pattern_type(pattern, ev), r);
+        SUB_EV(ev_top_pattern_type(pattern, ev), r);
     }
     // otherwise we have a built-in, type is already computed
 
@@ -167,7 +177,7 @@ static EvResult ev_reference_type(AstExpressionView v, Evaluator* ev) {
 
 static EvResult ev_function_type(AstExpressionView v, Evaluator* ev) {
     EvResult r = EV_RESULT_SUCCESS;
-    SUB_EV(ev_pattern_type(AST_VIEW_CHILD_PATTERN(v, .as.function.input), ev), r);
+    SUB_EV(ev_top_pattern_type(AST_VIEW_CHILD_PATTERN(v, .as.function.input), ev), r);
     bool has_output_type_bound = v.data->as.function.output_type != ID_SENTINEL;
     if (has_output_type_bound) {
         SUB_EV(ev_expression_value(AST_VIEW_CHILD_EXPRESSION(v, .as.function.output_type), ev), r);
@@ -310,6 +320,31 @@ static EvResult ev_conditional_type(AstExpressionView v, Evaluator* ev) {
     return r;
 }
 
+static EvResult ev_tuple_type(AstExpressionView v, Evaluator* ev) {
+    EvResult r = EV_RESULT_SUCCESS;
+    DYNAMIC_ARRAY(AnTypeId) element_types = {0};
+    for (
+        AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(v, .as.tuple.elements);
+        e.data;
+        e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+    ) {
+        SUB_EV(ev_expression_type(e, ev), r);
+        DYNAMIC_ARRAY_PUSH(&element_types, ev->analysis->expression_types[e.id]);
+    }
+
+    AnType type = {
+        .kind = AN_TYPE_TUPLE,
+        .as.tuple = (AnTupleType) {
+            .elements = element_types.data,
+            .len = element_types.len,
+        },
+    };
+    AnTypeId type_id = an_types_get_id_or_insert(&ev->analysis->types, type);
+    ev->analysis->expression_types[v.id] = type_id;
+
+    return r; 
+}
+
 static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev) {
     ev->analysis->expression_types[v.id] = AN_TYPE_ID_INT;
     return EV_RESULT_SUCCESS;
@@ -371,7 +406,7 @@ static EvResult ev_reference_value(AstExpressionView v, Evaluator* ev) {
     EvResult r = EV_RESULT_SUCCESS;
     AstPatternView pattern = AST_VIEW_PATTERN(v.nodes, b.top_level_pattern);
     if (pattern.data) {
-        SUB_EV(ev_pattern_value(pattern, ev), r);
+        SUB_EV(ev_top_pattern_value(pattern, ev), r);
     }
     // otherwise we have a built-in, type is already computed
 
@@ -395,7 +430,7 @@ static EvResult ev_function_value(AstExpressionView v, Evaluator* ev) {
     return EV_RESULT_SUCCESS;
 }
 
-static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
+static EvResult ev_top_pattern_type(AstPatternView v, Evaluator* ev) {
     switch (ev->pattern_types[v.id]) {
         case EV_STATUS_NONE: ev->pattern_types[v.id] = EV_STATUS_STARTED; break;
         case EV_STATUS_STARTED: return EV_RESULT_CYCLE;
@@ -403,78 +438,151 @@ static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev) {
         case EV_STATUS_ERROR: return EV_RESULT_ERROR;
     }
 
+    EvResult r = EV_RESULT_SUCCESS;
+
     AstBindingSetView binding_set =
         AST_VIEW_BINDING_SET(v.nodes, ev->analysis->pattern_binding_sets[v.id]);
-    EvResult r = EV_RESULT_SUCCESS;
+    AnTypeId value_type = -1;
     if (binding_set.data) {
         SUB_EV(ev_expression_type(AST_VIEW_CHILD_EXPRESSION(binding_set, .value), ev), r);
+        value_type = ev->analysis->expression_types[binding_set.data->value];
     }
 
-    AstExpressionView type_bound;
-    AnConstant type_bound_value;
-    AnTypeId type_id = AN_TYPE_INVALID;
-    AnBindingId binding_id;
-    AnBinding* binding;
-    switch (v.data->kind) {
-        case AST_PATTERN_VARIABLE:
-            type_bound = AST_VIEW_CHILD_EXPRESSION(v, .type_bound);
-            if (type_bound.data) {
-                SUB_EV(ev_expression_value(type_bound, ev), r);
-                type_bound_value = *(AnConstant const*)
-                    id_hash_table_get(ev->analysis->constants, type_bound.id);
-                if (type_bound_value.kind != AN_CONSTANT_TYPE) {
-                    report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
-                    report_message("type bound didn't evaluate to type");
-                    report_end();
-                    r = EV_RESULT_ERROR;
-                } else {
-                    type_id = type_bound_value.as.type;
-                    if (binding_set.data) {
-                        if (ev->analysis->expression_types[binding_set.data->value] != type_id) {
-                            report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
-                            report_message("type mismatch in binding declaration");
-                            report_end();
-                            r = EV_RESULT_ERROR;
-                        }
-                    }
-                }
-            }
-            if (binding_set.data && type_id == AN_TYPE_ID_INVALID) {
-                type_id = ev->analysis->expression_types[binding_set.data->value];
-            }
-            if (!binding_set.data && !type_bound.data) {
-                report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
-                report_message("missing type bound");
-                report_end();
-                r = EV_RESULT_ERROR;
-            }
-
-            binding_id = *(AnBindingId const*)
-                id_hash_table_get(ev->analysis->variable_bindings, v.id);
-            binding = an_get_binding_mut(&ev->analysis->scope_bindings, binding_id);
-            binding->type = type_id;
-            if (binding->kind == AN_BINDING_VARIABLE) {
-                AnType type = an_types_get(ev->analysis->types, type_id);
-                AnFunction* function = &ev->analysis->functions.data[binding->as.variable.function];
-                binding->as.variable.range = (BytecodeVarRange) { function->stack_space, function->stack_space + type.size };
-                function->stack_space += type.size;
-            }
-
-            break;
-
-        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
-    }
+    SUB_EV(ev_pattern_type(v, ev, value_type), r);
 
     switch (r) {
-        case EV_RESULT_SUCCESS: ev->pattern_types[v.id] = EV_STATUS_SUCCESS;
-        case EV_RESULT_ERROR: ev->pattern_types[v.id] = EV_STATUS_ERROR;
+        case EV_RESULT_SUCCESS: ev->pattern_types[v.id] = EV_STATUS_SUCCESS; break;
+        case EV_RESULT_ERROR: ev->pattern_types[v.id] = EV_STATUS_ERROR; break;
         default: break;
     }
 
     return r;
 }
 
-static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev) {
+static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev, AnTypeId inherited) {
+    EvResult r = EV_RESULT_SUCCESS;
+
+    AstExpressionView type_bound = AST_VIEW_CHILD_EXPRESSION(v, .type_bound);
+    AnTypeId type_bound_value = -1;
+    if (type_bound.data) {
+        SUB_EV(ev_expression_value(type_bound, ev), r);
+        if (r != EV_RESULT_ERROR) {
+            AnConstant type_value = *(AnConstant const*)
+                id_hash_table_get(ev->analysis->constants, type_bound.id);
+            if (type_value.kind != AN_CONSTANT_TYPE) {
+                report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                report_message("type bound didn't evaluate to type");
+                report_end();
+                r = EV_RESULT_ERROR;
+            } else {
+                type_bound_value = type_value.as.type;
+            }
+        }
+    }
+
+    if (inherited != -1 && type_bound_value != -1) {
+        if (inherited != type_bound_value) {
+            report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+            report_message("type mismatch with type bound");
+            report_end();
+            r = EV_RESULT_ERROR;
+        }
+    }
+
+    AnTypeId down_type = type_bound_value;
+    if (down_type == -1) {
+        down_type = inherited;
+    }
+
+    switch (v.data->kind) {
+        case AST_PATTERN_VARIABLE: r = ev_pat_variable_type(v, ev, down_type); break;
+        case AST_PATTERN_TUPLE: r = ev_pat_tuple_type(v, ev, down_type); break;
+    }
+
+    return r;
+}
+
+static EvResult ev_pat_variable_type(AstPatternView v, Evaluator* ev, AnTypeId inherited) {
+    if (inherited == -1) {
+        report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+        report_message("variable doesn't have definitive type");
+        report_end();
+        return EV_RESULT_ERROR;
+    }
+
+    ev->analysis->pattern_types[v.id] = inherited;
+
+    AnBindingId bid =
+        *(AnBindingId const*)id_hash_table_get(ev->analysis->variable_bindings, v.id);
+    AnBinding* b = an_get_binding_mut(&ev->analysis->scope_bindings, bid);
+    b->type = inherited;
+
+    if (b->kind == AN_BINDING_VARIABLE) {
+        AnType type = an_types_get(ev->analysis->types, inherited);
+        AnFunction* function = &ev->analysis->functions.data[b->as.variable.function];
+        BytecodeVarRange range = { .start = function->stack_space };
+        function->stack_space += type.size;
+        range.end = function->stack_space;
+        b->as.variable.range = range;
+    }
+
+    return EV_RESULT_SUCCESS;
+}
+
+static EvResult ev_pat_tuple_type(AstPatternView v, Evaluator* ev, AnTypeId inherited) {
+    EvResult r = EV_RESULT_SUCCESS;
+
+    bool inherits = inherited != -1;
+    AnType inherited_type = {0};
+    if (inherits) {
+        inherited_type = an_types_get(ev->analysis->types, inherited);
+        if (inherited_type.kind != AN_TYPE_TUPLE) {
+            report_begin(SEVERITY_DEBUG, DUMMY_ERROR_CODE);
+            report_message("type bound on tuple pattern didn't evaluate to tuple type");
+            report_end();
+            r = EV_RESULT_ERROR;
+            inherits = false;
+        }
+    }
+
+    DYNAMIC_ARRAY(AnTypeId) elements = {0};
+    size_t i = 0;
+    for (
+        AstPatternView e = AST_VIEW_CHILD_PATTERN(v, .as.tuple.elements);
+        e.data;
+        e = AST_VIEW_CHILD_PATTERN(e, .next)
+    ) {
+        AnTypeId element_inherited = -1;
+        if (inherits && i < inherited_type.as.tuple.len) {
+            element_inherited = inherited_type.as.tuple.elements[i];
+        }
+        SUB_EV(ev_pattern_type(e, ev, element_inherited), r);
+        if (!inherits) {
+            DYNAMIC_ARRAY_PUSH(&elements, ev->analysis->pattern_types[e.id]);
+        }
+        i++;
+    }
+
+    AnTypeId type;
+    if (inherits) {
+        type = inherited;
+    } else {
+        AnType type_desc = {
+            .kind = AN_TYPE_TUPLE,
+            .as.tuple = {
+                .elements = elements.data,
+                .len = elements.len,
+            }
+        };
+        type = an_types_get_id_or_insert(&ev->analysis->types, type_desc);
+    }
+
+    ev->analysis->pattern_types[v.id] = type;
+
+    return r;
+}
+
+static EvResult ev_top_pattern_value(AstPatternView v, Evaluator* ev) {
     uint8_t const* ps = id_hash_table_get(ev->pattern_values, v.id);
     EvStatus s = (ps) ? *ps : EV_STATUS_NONE;
     switch (s) {
@@ -488,35 +596,28 @@ static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev) {
     }
 
     EvResult r = EV_RESULT_SUCCESS;
-    SUB_EV(ev_pattern_type(v, ev), r);
+    SUB_EV(ev_top_pattern_type(v, ev));
     if (r == EV_RESULT_ERROR) {
-        return EV_RESULT_ERROR;
+        return r;
     }
 
     AstBindingSetView binding_set =
         AST_VIEW_BINDING_SET(v.nodes, ev->analysis->pattern_binding_sets[v.id]);
-    if (!binding_set.data) {
+    AnConstant value;
+    if (binding_set.data) {
+        SUB_EV(ev_expression_value(AST_VIEW_CHILD_EXPRESSION(binding_set, .value), ev), r);
+        value = *(AnConstant const*)id_hash_table_get(ev->analysis->constants, binding_set.data->value);
+    } else {
         report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
-        report_message("constant pattern doesn't correspond to a binding declaration");
+        report_message("value of pattern isn't known at compile time");
         report_end();
+        value = (AnConstant) {
+            .kind = AN_CONSTANT_INVALID,
+            .type = AN_TYPE_INVALID,
+        };
     }
-    SUB_EV(ev_expression_value(AST_VIEW_CHILD_EXPRESSION(binding_set, .value), ev), r);
-    AnConstant value = *(AnConstant const*)
-        id_hash_table_get(ev->analysis->constants, binding_set.data->value);
 
-    AnBindingId binding_id;
-    AnBinding* binding;
-    switch (v.data->kind) {
-        case AST_PATTERN_VARIABLE:
-            binding_id = *(AnBindingId const*)
-                id_hash_table_get(ev->analysis->variable_bindings, v.id);
-            binding = an_get_binding_mut(&ev->analysis->scope_bindings, binding_id);
-            binding->kind = AN_BINDING_CONSTANT;
-            binding->as.constant = value;
-            break;
-        
-        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
-    }
+    SUB_EV(ev_pattern_value(v, ev, value));
 
     switch (r) {
         case EV_RESULT_SUCCESS: s = EV_STATUS_SUCCESS;
@@ -528,19 +629,54 @@ static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev) {
     return r;
 }
 
+static EvResult ev_pattern_value(AstPatternView v, Evaluator* ev, AnConstant value) {
+    switch (v.data->kind) {
+        case AST_PATTERN_VARIABLE: return ev_pat_variable_value(v, ev, value);
+        case AST_PATTERN_TUPLE: return ev_pat_tuple_value(v, ev, value);
+    }
+}
+
+static EvResult ev_pat_variable_value(AstPatternView v, Evaluator* ev, AnConstant value) {
+    AnBindingId bid =
+        *(AnBindingId const*)id_hash_table_get(ev->analysis->variable_bindings, v.id);
+    AnBinding* b = an_get_binding_mut(&ev->analysis->scope_bindings, bid);
+    assert(b->kind == AN_BINDING_CONSTANT && "constant binding kind wasn't constant");
+    b->as.constant = value;
+    return EV_RESULT_SUCCESS;
+}
+
+static EvResult ev_pat_tuple_value(AstPatternView v, Evaluator* ev, AnConstant value) {
+    EvResult r = EV_RESULT_SUCCESS;
+
+    assert(value.kind == AN_CONSTANT_TUPLE);
+    size_t i = 0;
+    for (
+        AstPatternView e = AST_VIEW_CHILD_PATTERN(v, .as.tuple.elements);
+        e.data;
+        e = AST_VIEW_CHILD_PATTERN(e, .next)
+    ) {
+        assert(i < value.as.tuple.len);
+        AnConstant e_val = value.as.tuple.elements[i];
+        SUB_EV(ev_pattern_value(v, ev, e_val), r);
+        i++;
+    }
+
+    return r;
+}
+
 // FIXME: binding sets are kinda weird
 
 static EvResult ev_binding_set_type(AstBindingSetView v, Evaluator* ev) {
     switch (v.data->kind) {
         case AST_BINDING_SET_CONSTANT:
-            return ev_pattern_value(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);
+            return ev_top_pattern_value(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);
         case AST_BINDING_SET_VARIABLE:
-            return ev_pattern_type(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);
+            return ev_top_pattern_type(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);
     }
 }
 
 [[maybe_unused]]
 static EvResult ev_binding_set_value(AstBindingSetView v, Evaluator* ev) {
     assert(v.data->kind == AST_BINDING_SET_CONSTANT);
-    return ev_pattern_value(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);
+    return ev_top_pattern_value(AST_VIEW_CHILD_PATTERN(v, .pattern), ev);
 }

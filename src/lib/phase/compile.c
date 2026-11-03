@@ -16,11 +16,14 @@ static void comp_expression_function(AstExpressionView v, Compiler a);
 static void comp_expression_unary_operation(AstExpressionView v, Compiler a);
 static void comp_expression_binary_operation(AstExpressionView v, Compiler a);
 static void comp_expression_conditional(AstExpressionView v, Compiler a);
+static void comp_expression_tuple(AstExpressionView v, Compiler a);
 static void comp_expression_literal_int(AstExpressionView v, Compiler a);
 
 static void comp_constant(AnConstant v, Compiler a);
 
 static void comp_pattern(AstPatternView v, Compiler a);
+static void comp_pattern_variable(AstPatternView v, Compiler a);
+static void comp_pattern_tuple(AstPatternView v, Compiler a);
 
 static void comp_binding_set(AstBindingSetView v, Compiler a);
 
@@ -70,8 +73,8 @@ static void comp_expression(AstExpressionView v, Compiler a) {
         case AST_EXPRESSION_UNARY_OPERATION: comp_expression_unary_operation(v, a); break;
         case AST_EXPRESSION_BINARY_OPERATION: comp_expression_binary_operation(v, a); break;
         case AST_EXPRESSION_CONDITIONAL: comp_expression_conditional(v, a); break;
+        case AST_EXPRESSION_TUPLE: comp_expression_tuple(v, a); break;
         case AST_EXPRESSION_LITERAL_INT: comp_expression_literal_int(v, a); break;
-        case AST_EXPRESSION_TUPLE: exit(-1); break; // TODO
     }
 }
 
@@ -163,6 +166,16 @@ static void comp_expression_conditional(AstExpressionView v, Compiler a) {
     emit_symbol_location(a.emitter, conditional_end);
 }
 
+static void comp_expression_tuple(AstExpressionView v, Compiler a) {
+    for (
+        AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(v, .as.tuple.elements);
+        e.data;
+        e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+    ) {
+        comp_expression(e, a);
+    }
+}
+
 static void comp_expression_literal_int(AstExpressionView v, Compiler a) {
     emit_int(a.emitter, v.data->as.literal_int);
 }
@@ -176,23 +189,43 @@ static void comp_constant(AnConstant v, Compiler a) {
         case AN_CONSTANT_TYPE:
             emit_int(a.emitter, v.as.type); // FIXME: something better than int?
             break;
+        case AN_CONSTANT_TUPLE:
+            for (size_t i = 0; i < v.as.tuple.len; i++) {
+                comp_constant(v.as.tuple.elements[i], a);
+            }
+            break;
     }
 }
 
 static void comp_pattern(AstPatternView v, Compiler a) {
-    AnBindingId binding_id;
-    BytecodeVarRange var_range;
     switch(v.data->kind) {
-        case AST_PATTERN_VARIABLE:
-            binding_id = *(AnBindingId const*)id_hash_table_get(a.analysis.variable_bindings, v.id);
-            var_range = an_get_binding(a.analysis.scope_bindings, binding_id)->as.variable.range;
-            for (int32_t i = (int32_t)var_range.end - 1; i >= var_range.start; i--) {
-                emit_set(a.emitter, i);
-            }
-            break;
-
-        case AST_PATTERN_TUPLE: exit(-1); break; // TODO
+        case AST_PATTERN_VARIABLE: comp_pattern_variable(v, a); break;
+        case AST_PATTERN_TUPLE: comp_pattern_tuple(v, a); break;
     }
+}
+
+static void comp_pattern_variable(AstPatternView v, Compiler a) {
+    AnBindingId binding_id = *(AnBindingId const*)id_hash_table_get(a.analysis.variable_bindings, v.id);
+    BytecodeVarRange var_range = 
+        an_get_binding(a.analysis.scope_bindings, binding_id)->as.variable.range;
+    for (int32_t i = (int32_t)var_range.end - 1; i >= var_range.start; i--) {
+        emit_set(a.emitter, i);
+    }
+}
+
+static void comp_pattern_tuple(AstPatternView v, Compiler a) {
+    DYNAMIC_ARRAY(AstPatternId) elements = {0};
+    for (
+        AstPatternView e = AST_VIEW_CHILD_PATTERN(v, .as.tuple.elements);
+        e.data;
+        e = AST_VIEW_CHILD_PATTERN(e, .next)
+    ) {
+        DYNAMIC_ARRAY_PUSH(&elements, e.id);
+    }
+    for (intptr_t i = elements.len - 1; i >= 0; i--) {
+        comp_pattern(AST_VIEW_PATTERN(v.nodes, elements.data[i]), a);
+    }
+    free(elements.data);
 }
 
 static void comp_binding_set(AstBindingSetView v, Compiler a) {
