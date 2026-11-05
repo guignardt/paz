@@ -155,6 +155,22 @@ void debug_ast_expression(AstExpressionView p) {
             debug_attr_end_list();
 
             break;
+        
+        case AST_EXPRESSION_TUPLE_TYPE:
+            debug_begin("tuple type");
+            debug_attr_int("id", p.id);
+
+            debug_attr_begin_list("elements");
+            for (
+                AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(p, .as.tuple_type.elements);
+                e.data;
+                e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+            ) {
+                debug_ast_expression(e);
+            }
+            debug_attr_end_list();
+
+            break;
 
         case AST_EXPRESSION_LITERAL_INT:
             debug_begin("int literal");

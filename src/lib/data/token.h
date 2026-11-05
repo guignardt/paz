@@ -72,6 +72,7 @@ typedef struct Token {
 
 typedef enum TokenDelim {
     TOKEN_DELIM_PAREN,
+    TOKEN_DELIM_BRACKET,
 } TokenDelim;
 
 typedef struct TokenDelimInfo {

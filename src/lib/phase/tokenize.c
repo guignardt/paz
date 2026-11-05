@@ -47,7 +47,7 @@ static void tokenize_group(Tokenizer* t, TokenDelim delim) {
     } else {
         TokenDelimInfo info = token_delim_info(delim);
         right = info.right;
-        group = token_stream_open_group(t->dst, TOKEN_DELIM_PAREN, t->pos++);
+        group = token_stream_open_group(t->dst, delim, t->pos++);
     }
 
     while (true) {
@@ -76,6 +76,8 @@ static void tokenize_one(Tokenizer* t) {
         tokenize_identifier_or_keyword(t);
     } else if (c == '(') {
         tokenize_group(t, TOKEN_DELIM_PAREN);
+    } else if (c == '[') {
+        tokenize_group(t, TOKEN_DELIM_BRACKET);
     } else if (isdigit(c)) {
         tokenize_number(t);
     } else {

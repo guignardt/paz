@@ -1,13 +1,10 @@
-const main = fn (a: Int) -> Int => (
-    let foo = a - 2 * a;
-    let pair = (1, 2);
-    let triple_trailing = (3, 4, 5,);
-    let singleton = (10,);
-    let unit = ();
-    let (x, y) = (3, 4);
-    if 42 == foo % a then 3 else a + 2
+const main = fn (x: Int) -> Int => (
+    let foo = frob(1, 2, 3);
+    let type = [Int, Int, Int, ];
+    foo * 2
 );
 
-const bar = fn (a: Int) -> Int => (a);
-
-const add = fn (a: Int, b: Int) -> Int => a + b;
+const frob = fn (a: Int, b: Int, c: Int) -> Int => (
+    let (div, rem): [Int, Int] = (a / b, a % b);
+    (div + c) * (rem - c)
+)

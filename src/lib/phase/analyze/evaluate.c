@@ -44,11 +44,14 @@ static EvResult ev_unary_operation_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_binary_operation_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_conditional_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_tuple_type(AstExpressionView v, Evaluator* ev);
+static EvResult ev_tuple_type_type(AstExpressionView v, Evaluator* ev);
 static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev);
 
 static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev);
 static EvResult ev_reference_value(AstExpressionView v, Evaluator* ev);
 static EvResult ev_function_value(AstExpressionView v, Evaluator* ev);
+static EvResult ev_tuple_value(AstExpressionView v, Evaluator* ev);
+static EvResult ev_tuple_type_value(AstExpressionView v, Evaluator* ev);
 
 static EvResult ev_top_pattern_type(AstPatternView v, Evaluator* ev);
 static EvResult ev_pattern_type(AstPatternView v, Evaluator* ev, AnTypeId inherited);
@@ -93,7 +96,11 @@ void analyze_evaluate(Analysis* a) {
         STOP_ON_CYCLE(ev_binding_set_type(AST_VIEW_BINDING_SET(nodes, id), &ev));
     }
     for (AstExpressionId id = 0; id < nodes.expressions.len; id++) {
-        STOP_ON_CYCLE(ev_expression_type(AST_VIEW_EXPRESSION(nodes, id), &ev));
+        AstExpressionView v = AST_VIEW_EXPRESSION(nodes, id);
+        STOP_ON_CYCLE(ev_expression_type(v, &ev));
+        if (v.data->kind == AST_EXPRESSION_TUPLE_TYPE) {
+            STOP_ON_CYCLE(ev_expression_value(v, &ev));
+        }
     }
     // FIXME: do we need to evaluate patterns explicitly?
 
@@ -120,6 +127,7 @@ static EvResult ev_expression_type(AstExpressionView v, Evaluator* ev) {
         case AST_EXPRESSION_BINARY_OPERATION: r = ev_binary_operation_type(v, ev); break;
         case AST_EXPRESSION_CONDITIONAL: r = ev_conditional_type(v, ev); break;
         case AST_EXPRESSION_TUPLE: r = ev_tuple_type(v, ev); break;
+        case AST_EXPRESSION_TUPLE_TYPE: r = ev_tuple_type_type(v, ev); break;
         case AST_EXPRESSION_LITERAL_INT: r = ev_literal_int_type(v, ev); break;
     }
 
@@ -199,7 +207,7 @@ static EvResult ev_function_type(AstExpressionView v, Evaluator* ev) {
                 report_message("type mismatch in function output");
                 report_end();
             }
-            output_type = value.type;
+            output_type = value.as.type;
         }
     }
 
@@ -345,6 +353,11 @@ static EvResult ev_tuple_type(AstExpressionView v, Evaluator* ev) {
     return r; 
 }
 
+static EvResult ev_tuple_type_type(AstExpressionView v, Evaluator* ev) {
+    ev->analysis->expression_types[v.id] = AN_TYPE_ID_TYPE;
+    return EV_RESULT_SUCCESS;
+}
+
 static EvResult ev_literal_int_type(AstExpressionView v, Evaluator* ev) {
     ev->analysis->expression_types[v.id] = AN_TYPE_ID_INT;
     return EV_RESULT_SUCCESS;
@@ -378,6 +391,8 @@ static EvResult ev_expression_value(AstExpressionView v, Evaluator* ev) {
     switch (v.data->kind) {
         case AST_EXPRESSION_REFERENCE: r = ev_reference_value(v, ev); break;
         case AST_EXPRESSION_FUNCTION: r = ev_function_value(v, ev); break;
+        case AST_EXPRESSION_TUPLE: r = ev_tuple_value(v, ev); break;
+        case AST_EXPRESSION_TUPLE_TYPE: r = ev_tuple_type_value(v, ev); break;
         default:
             report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
             report_message("invalid constant expression");
@@ -428,6 +443,75 @@ static EvResult ev_function_value(AstExpressionView v, Evaluator* ev) {
     };
     id_hash_table_insert(&ev->analysis->constants, v.id, &value);
     return EV_RESULT_SUCCESS;
+}
+
+static EvResult ev_tuple_value(AstExpressionView v, Evaluator* ev) {
+    EvResult r = EV_RESULT_SUCCESS;
+    DYNAMIC_ARRAY(AnConstant) elements = {0};
+    for (
+        AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(v, .as.tuple.elements);
+        e.data;
+        e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+    ) {
+        SUB_EV(ev_expression_value(e, ev), r);
+        AnConstant e_val = *(AnConstant const*)id_hash_table_get(ev->analysis->constants, e.id);
+        DYNAMIC_ARRAY_PUSH(&elements, e_val);
+    }
+
+    AnTypeId type = ev->analysis->expression_types[v.id];
+    AnConstant value = {
+        .kind = AN_CONSTANT_TUPLE,
+        .as.tuple = (AnConstantTuple) {
+            .elements = elements.data,
+            .len = elements.len,
+        },
+        .type = type
+    };
+    id_hash_table_insert(&ev->analysis->constants, v.id, &value);
+
+    return r;
+}
+
+static EvResult ev_tuple_type_value(AstExpressionView v, Evaluator* ev) {
+    EvResult r = EV_RESULT_SUCCESS;
+
+    DYNAMIC_ARRAY(AnTypeId) elements = {0};
+    for (
+        AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(v, .as.tuple_type.elements);
+        e.data;
+        e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+    ) {
+        SUB_EV(ev_expression_value(e, ev), r);
+        AnConstant e_val = *(AnConstant const*)id_hash_table_get(ev->analysis->constants, e.id);
+        AnTypeId type;
+        if (e_val.kind != AN_CONSTANT_TYPE) {
+            report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+            report_message("element of tuple type didn't evaluate to a type");
+            report_end();
+            r = EV_RESULT_ERROR;
+            type = AN_TYPE_ID_INVALID;
+        } else {
+            type = e_val.as.type;
+        }
+        DYNAMIC_ARRAY_PUSH(&elements, type);
+    }
+
+    AnType type = {
+        .kind = AN_TYPE_TUPLE,
+        .as.tuple = (AnTupleType) {
+            .elements = elements.data,
+            .len = elements.len,
+        },
+    };
+    AnTypeId type_id = an_types_get_id_or_insert(&ev->analysis->types, type);
+    AnConstant value = {
+        .kind = AN_CONSTANT_TYPE,
+        .as.type = type_id,
+        .type = AN_TYPE_ID_TYPE,
+    };
+    id_hash_table_insert(&ev->analysis->constants, v.id, &value);
+
+    return r;
 }
 
 static EvResult ev_top_pattern_type(AstPatternView v, Evaluator* ev) {

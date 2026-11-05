@@ -48,7 +48,8 @@ TokenKindInfo token_kind_info(TokenKind kind) {
 }
 
 static TokenDelimInfo token_delim_infos[] = {
-    [TOKEN_DELIM_PAREN] = { '(', "`(`", ')', "`)`" },
+    [TOKEN_DELIM_PAREN] =   { '(', "`(`", ')', "`)`" },
+    [TOKEN_DELIM_BRACKET] = { '[', "`[`", ']', "`]`" },
 };
 
 TokenDelimInfo token_delim_info(TokenDelim delim) {

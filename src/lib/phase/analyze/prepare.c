@@ -171,6 +171,16 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
             }
             break;
 
+        case AST_EXPRESSION_TUPLE_TYPE:
+            for (
+                AstExpressionView e = AST_VIEW_CHILD_EXPRESSION(v, .as.tuple_type.elements);
+                e.data;
+                e = AST_VIEW_CHILD_EXPRESSION(e, .next)
+            ) {
+                analyze_prepare_expression(w, e, true);
+            }
+            break;
+
         case AST_EXPRESSION_LITERAL_INT:
             break;
     }
@@ -186,10 +196,14 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
         }
     }
 
+    AstExpressionView type_bound = AST_VIEW_CHILD_EXPRESSION(v, .type_bound);
+    if (type_bound.data) {
+        analyze_prepare_expression(w, type_bound, true);
+    }
+
     String name;
     AnBinding binding;
     AnBindingId binding_id;
-    AstExpressionView type_bound;
     switch (v.data->kind) {
         case AST_PATTERN_VARIABLE:
             name = v.data->as.variable.identifier.string;
@@ -219,11 +233,6 @@ void analyze_prepare_pattern(AnPreparer w, AstPatternView v) {
             }
             binding_id = an_add_binding(&w.analysis->scope_bindings, w.scope_location.scope, binding);
             id_hash_table_insert(&w.analysis->variable_bindings, v.id, &binding_id);
-
-            type_bound = AST_VIEW_CHILD_EXPRESSION(v, .type_bound);
-            if (type_bound.data) {
-                analyze_prepare_expression(w, type_bound, true);
-            }
 
             break;
 

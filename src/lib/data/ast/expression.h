@@ -60,6 +60,10 @@ typedef struct AstTuple {
     AstExpressionId elements; // list
 } AstTuple;
 
+typedef struct AstTupleType {
+    AstExpressionId elements; // list
+} AstTupleType;
+
 typedef enum AstExpressionKind {
     AST_EXPRESSION_BLOCK,
     AST_EXPRESSION_REFERENCE,
@@ -68,6 +72,7 @@ typedef enum AstExpressionKind {
     AST_EXPRESSION_BINARY_OPERATION,
     AST_EXPRESSION_CONDITIONAL,
     AST_EXPRESSION_TUPLE,
+    AST_EXPRESSION_TUPLE_TYPE,
     AST_EXPRESSION_LITERAL_INT,
 } AstExpressionKind;
 
@@ -85,6 +90,7 @@ typedef struct AstExpression {
         AstBinaryOperation binary_operation;
         AstConditional conditional;
         AstTuple tuple;
+        AstTupleType tuple_type;
         int64_t literal_int;
     } as;
 } AstExpression;

@@ -71,8 +71,10 @@ static ParseStatus parse_expression_try_continue(
 
 // takes in the contents of the parenthesized expression
 static ParseStatus parse_expression_paren(Parser p, Range range, OUT(AstExpressionId) dst);
+static ParseStatus parse_expression_bracket(Parser p, Range range, OUT(AstExpressionId) dst);
 static ParseStatus parse_block(Parser p, Range range, OUT(AstExpressionId) dst);
 static ParseStatus parse_tuple(Parser p, Range range, OUT(AstExpressionId) dst);
+static void parse_expression_seq(Parser p, OUT(AstExpressionId) dst_first, OUT(bool) dst_parsed_comma);
 static void ast_ref_new(Parser p, Range identifier, OUT(AstExpressionId) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpressionId) dst);
@@ -117,21 +119,22 @@ static ParseStatus parse_expression_primary(Parser p, OUT(AstExpressionId) dst) 
         return PARSE_ILL;
     }
 
+    TokenIt contents;
+    Range range;
     switch (head.kind) {
         case TOKEN_TREE_GROUP:
+            contents = token_group_contents(head.as.group);
+            range = (Range){ head.as.group.left.start, head.as.group.right.end };
+            Parser p2 = {
+                .text = p.text,
+                .tokens = &contents,
+                .nodes = p.nodes,
+            };
             switch (head.as.group.delim) {
                 case TOKEN_DELIM_PAREN:;
-                    TokenIt contents = token_group_contents(head.as.group);
-                    Parser p2 = {
-                        .text = p.text,
-                        .tokens = &contents,
-                        .nodes = p.nodes,
-                    };
-                    return parse_expression_paren(
-                        p2,
-                        (Range){ head.as.group.left.start, head.as.group.right.end },
-                        dst
-                    );
+                    return parse_expression_paren(p2, range, dst);
+                case TOKEN_DELIM_BRACKET:
+                    return parse_expression_bracket(p2, range, dst);
             }
 
         case TOKEN_TREE_SINGLE:;
@@ -192,6 +195,8 @@ static ParseStatus parse_expression_try_continue(
                     operator = AST_OPERATOR_CALL;
                     operator_token = false;
                     break;
+                default:
+                    goto parse_expression_try_continue_no_parse;
             }
             break;
         case TOKEN_TREE_SINGLE:;
@@ -352,8 +357,51 @@ static ParseStatus parse_block(Parser p, Range range, OUT(AstExpressionId) dst) 
 }
 
 static ParseStatus parse_tuple(Parser p, Range range, OUT(AstExpressionId) dst) {
-    AstTuple tuple = { .elements = ID_SENTINEL };
-    AstExpressionId last_element = ID_SENTINEL;
+    AstExpressionId elements;
+    bool parsed_comma;
+    parse_expression_seq(p, &elements, &parsed_comma);
+
+    AstExpressionId id;
+    if (elements != ID_SENTINEL && !parsed_comma) {
+        id = elements;
+    } else {
+        AstExpression v = {
+            .next = ID_SENTINEL,
+            .range = range,
+            .kind = AST_EXPRESSION_TUPLE,
+            .as.tuple = (AstTuple) { .elements = elements },
+        };
+        id = box_expression(p, v);
+    }
+    
+    if (dst) *dst = id;
+    // FIXME: is this always right?
+    return PARSE_OK;
+}
+
+static ParseStatus parse_expression_bracket(Parser p, Range range, OUT(AstExpressionId) dst) {
+    AstExpressionId elements;
+    parse_expression_seq(p, &elements, NULL);
+    AstExpression v = {
+        .next = ID_SENTINEL,
+        .range = range,
+        .kind = AST_EXPRESSION_TUPLE_TYPE,
+        .as.tuple_type = (AstTupleType) { .elements = elements },
+    };
+    AstExpressionId id = box_expression(p, v);
+
+    if (dst) *dst = id;
+    // FIXME: is this always right?
+    return PARSE_OK;
+}
+
+static void parse_expression_seq(
+    Parser p,
+    OUT(AstExpressionId) dst_first,
+    OUT(bool) dst_parsed_comma
+) {
+    AstExpressionId first = ID_SENTINEL;
+    AstExpressionId last = ID_SENTINEL;
     bool parsed_comma = false;
     while (true) {
         if (token_it_end(*p.tokens)) {
@@ -385,31 +433,17 @@ static ParseStatus parse_tuple(Parser p, Range range, OUT(AstExpressionId) dst) 
             continue;
         }
 
-        if (tuple.elements == ID_SENTINEL) {
-            tuple.elements = elt;
-            last_element = elt;
+        if (first == ID_SENTINEL) {
+            first = elt;
+            last = elt;
         } else {
-            p.nodes->expressions.data[last_element].next = elt;
-            last_element = elt;
+            p.nodes->expressions.data[last].next = elt;
+            last = elt;
         }
     }
 
-    AstExpressionId id;
-    if (tuple.elements != ID_SENTINEL && !parsed_comma) {
-        id = tuple.elements;
-    } else {
-        AstExpression v = {
-            .next = ID_SENTINEL,
-            .range = range,
-            .kind = AST_EXPRESSION_TUPLE,
-            .as.tuple = tuple
-        };
-        id = box_expression(p, v);
-    }
-    
-    if (dst) *dst = id;
-    // FIXME: is this always right?
-    return PARSE_OK;
+    if (dst_first) *dst_first = first;
+    if (dst_parsed_comma) *dst_parsed_comma = parsed_comma;
 }
 
 static ParseStatus parse_function_continue(Parser p, Range range, OUT(AstExpressionId) dst) {

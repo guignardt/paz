@@ -1,6 +1,8 @@
 #include "phase/compile.h"
 #include "phase/emit.h"
 
+#include "diagnostic/report.h"
+
 typedef struct Compiler {
     AstNodes ast;
     Analysis analysis;
@@ -75,6 +77,11 @@ static void comp_expression(AstExpressionView v, Compiler a) {
         case AST_EXPRESSION_CONDITIONAL: comp_expression_conditional(v, a); break;
         case AST_EXPRESSION_TUPLE: comp_expression_tuple(v, a); break;
         case AST_EXPRESSION_LITERAL_INT: comp_expression_literal_int(v, a); break;
+        case AST_EXPRESSION_TUPLE_TYPE:
+            report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+            report_message("internal error: tried to compile expression that should be constant but wasn't");
+            report_end();
+            break;
     }
 }
 

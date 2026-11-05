@@ -11,7 +11,7 @@ ParseStatus parse_pattern(Parser p, OUT(AstPatternId) dst) {
         return PARSE_ILL;
     }
 
-    AstPatternId id;
+    AstPatternId id = ID_SENTINEL;
     switch (head.kind) {
         case TOKEN_TREE_GROUP:
             switch (head.as.group.delim) {
@@ -28,6 +28,10 @@ ParseStatus parse_pattern(Parser p, OUT(AstPatternId) dst) {
                         &id
                     );
                     break;
+                case TOKEN_DELIM_BRACKET:
+                    unexpected_token();
+                    if (dst) *dst = ID_SENTINEL;
+                    return PARSE_ILL;
             }
             break;
 
@@ -53,6 +57,7 @@ ParseStatus parse_pattern(Parser p, OUT(AstPatternId) dst) {
                     break;
 
                 default:
+                    unexpected_token();
                     if (dst) *dst = ID_SENTINEL;
                     return PARSE_ILL;
             }
