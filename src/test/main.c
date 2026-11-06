@@ -79,18 +79,18 @@ int test_assemble(void) {
 
 int test_disassemble(void) {
     Bytecode bytecode = {0};
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_RES, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 2 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_RES, .arg = { .kind = BYTECODE_ARG_VAR, .as.var_ = 2 } });
     bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_INT, .arg = { .kind = BYTECODE_ARG_INT, .as.int_ = 5 } });
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_SET, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_VAR, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_SET, .arg = { .kind = BYTECODE_ARG_VAR, .as.var_ = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_VAR, .arg = { .kind = BYTECODE_ARG_VAR, .as.var_ = 1 } });
     bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_INT, .arg = { .kind = BYTECODE_ARG_INT, .as.int_ = 0 } });
     bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_GTI });
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_JMPNZ, .arg = { .kind = BYTECODE_ARG_LOC, .as.loc = 62 } });
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_VAR, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_JMPNZ, .arg = { .kind = BYTECODE_ARG_LOC, .as.loc_ = 62 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_VAR, .arg = { .kind = BYTECODE_ARG_VAR, .as.var_ = 1 } });
     bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_INT, .arg = { .kind = BYTECODE_ARG_INT, .as.int_ = -1 } });
     bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_ADDI });
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_SET, .arg = { .kind = BYTECODE_ARG_VAR, .as.var = 1 } });
-    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_JMP, .arg = { .kind = BYTECODE_ARG_LOC, .as.loc = 15 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_SET, .arg = { .kind = BYTECODE_ARG_VAR, .as.var_ = 1 } });
+    bytecode_push_op(&bytecode, (BytecodeOp) { .opcode = OP_JMP, .arg = { .kind = BYTECODE_ARG_LOC, .as.loc_ = 15 } });
     
     char expected_disassembly[] =
         "    res %2\n"
