@@ -39,6 +39,7 @@ typedef enum TokenKind {
     TOKEN_SLASH,
     TOKEN_PERCENT,
 
+    TOKEN_ENTRY,
     TOKEN_CONST,
     TOKEN_LET,
     TOKEN_FN,
@@ -56,7 +57,7 @@ typedef enum TokenKind {
 
 #define TOKEN_PUNCT_MIN (TOKEN_COMMA)
 #define TOKEN_PUNCT_MAX (TOKEN_PERCENT)
-#define TOKEN_KEYWORD_MIN (TOKEN_CONST)
+#define TOKEN_KEYWORD_MIN (TOKEN_ENTRY)
 #define TOKEN_KEYWORD_MAX (TOKEN_ELSE)
 
 typedef struct TokenKindInfo {

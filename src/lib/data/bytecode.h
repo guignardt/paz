@@ -124,15 +124,15 @@ typedef enum BytecodeArgKind {
 
 #define bytecode_arg(kind) bytecode_arg_##kind
 #define bytecode_arg_int(v) (BytecodeArg) { .kind = BYTECODE_ARG_INT, .as.int_ = v }
-#define bytecode_arg_loc(v) (BytecodeArg) { .kind = BYTECODE_ARG_LOC, .as.loc = v }
-#define bytecode_arg_var(v) (BytecodeArg) { .kind = BYTECODE_ARG_VAR, .as.var = v }
+#define bytecode_arg_loc(v) (BytecodeArg) { .kind = BYTECODE_ARG_LOC, .as.loc_ = v }
+#define bytecode_arg_var(v) (BytecodeArg) { .kind = BYTECODE_ARG_VAR, .as.var_ = v }
 
 typedef struct BytecodeArg {
     BytecodeArgKind kind;
     union {
         int64_t int_;
-        BytecodeLoc loc;
-        BytecodeVar var;
+        BytecodeLoc loc_;
+        BytecodeVar var_;
     } as;
 } BytecodeArg;
 

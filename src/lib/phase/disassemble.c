@@ -18,7 +18,7 @@ BOXED(char) disassemble(Bytecode bytecode) {
     while (rp < end) {
         BytecodeOp op = bytecode_read_op(&rp);
         if (op.arg.kind == BYTECODE_ARG_LOC) {
-            DYNAMIC_ARRAY_PUSH(&locs, op.arg.as.loc);
+            DYNAMIC_ARRAY_PUSH(&locs, op.arg.as.loc_);
         }
     }
 
@@ -44,6 +44,7 @@ BOXED(char) disassemble(Bytecode bytecode) {
         extend_str(&text, opcode_mnemos[op.opcode].string);
 
         if (op.opcode == OP_SYS) {
+            DYNAMIC_ARRAY_PUSH(&text, ' ');
             extend_str(&text, syscall_mnemos[op.opcode].string);
         }
 
@@ -54,11 +55,11 @@ BOXED(char) disassemble(Bytecode bytecode) {
                 extend_str(&text, buf);
                 break;
             case BYTECODE_ARG_LOC:
-                snprintf(buf, 64, " :L%llu", (unsigned long long)(op.arg.as.loc));
+                snprintf(buf, 64, " :L%llu", (unsigned long long)(op.arg.as.loc_));
                 extend_str(&text, buf);
                 break;
             case BYTECODE_ARG_VAR:
-                snprintf(buf, 64, " %%%u", (unsigned int)(op.arg.as.var));
+                snprintf(buf, 64, " %%%u", (unsigned int)(op.arg.as.var_));
                 extend_str(&text, buf);
                 break;
         }

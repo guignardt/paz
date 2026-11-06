@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdbool.h>
+
 #include "data/ast/nodes.h"
 #include "data/ast/identifier.h"
 
@@ -16,6 +18,7 @@ typedef struct AstFunction {
     AstPatternId input;
     AstExpressionId output_type; // optional
     AstExpressionId output;
+    bool entry;
 } AstFunction;
 
 typedef enum AstUnaryOperator {

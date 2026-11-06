@@ -78,6 +78,8 @@ static void parse_expression_seq(Parser p, OUT(AstExpressionId) dst_first, OUT(b
 static void ast_ref_new(Parser p, Range identifier, OUT(AstExpressionId) dst);
 // assumes the head `fn` token has already been consumed
 static ParseStatus parse_function_continue(Parser p, Range fn_range, OUT(AstExpressionId) dst);
+// assumes the head `entry` token has already been consumed
+static ParseStatus parse_entry_continue(Parser p, Range entry_range, OUT(AstExpressionId) dst);
 // assumes the head `if` token has already been consumed
 static ParseStatus parse_conditonal_continue(Parser p, Range if_range, OUT(AstExpressionId) dst);
 // doesn't actually read from the parser
@@ -165,6 +167,8 @@ static ParseStatus parse_expression_primary(Parser p, OUT(AstExpressionId) dst) 
                     return PARSE_OK;
                 case TOKEN_FN:
                     return parse_function_continue(p, head.as.single.range, dst);
+                case TOKEN_ENTRY:
+                    return parse_entry_continue(p, head.as.single.range, dst);
                 case TOKEN_IF:
                     return parse_conditonal_continue(p, head.as.single.range, dst);
                 case TOKEN_INT:
@@ -498,6 +502,29 @@ parse_function_continue_end:;
     };
     AstExpressionId id = box_expression(p, expr);
     if (dst) *dst = id;
+    return status;
+}
+
+static ParseStatus parse_entry_continue(Parser p, Range entry_range, OUT(AstExpressionId) dst) {
+    AstExpressionId inner;
+    ParseStatus status = parse_expression(p, &inner);
+    if (inner == ID_SENTINEL) {
+        *dst = ID_SENTINEL;
+        return status;
+    }
+
+    AstExpression* v = &p.nodes->expressions.data[inner];
+    if (v->kind != AST_EXPRESSION_FUNCTION) {
+        report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+        report_message("marked non-function as `entry`");
+        report_end();
+        *dst = ID_SENTINEL;
+        return status;
+    }
+
+    v->as.function.entry = true;
+    v->range.start = entry_range.start;
+    *dst = inner;
     return status;
 }
 

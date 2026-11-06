@@ -10,6 +10,7 @@ typedef struct Analysis {
     AstNodeView root;
     AnFunctions functions;
     AnFunctionIds function_ids;
+    AnFunctionId entry_function;
     AnScopeBindings scope_bindings;
     AnScopeId builtin_scope;
     AnReferenceBindingLocations reference_binding_locations;

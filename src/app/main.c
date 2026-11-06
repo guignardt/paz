@@ -13,6 +13,7 @@
 #include "phase/analyze.h"
 #include "phase/compile.h"
 #include "phase/disassemble.h"
+#include "phase/vm.h"
 
 #define DEBUG_SOURCE_CODE   0
 #define DEBUG_LINE_INDICES  0
@@ -180,6 +181,11 @@ int main(int argc, char const** argv) {
         eprintf("%s", disassembly);
     }
 #endif
+
+    VmSystem vm_system = default_vm_system();
+    Vm vm = vm_new(bytecode, vm_system);
+    vm_run(&vm, 1);
+    vm_free(&vm);
 
 disassembly_error_end:
     free(disassembly);

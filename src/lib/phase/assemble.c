@@ -113,13 +113,13 @@ static int parse_line(char const* line, Assembler* a, OUT(BytecodeOp) dst) {
             s++;
             op.arg.kind = BYTECODE_ARG_LOC;
             if (parse_register_symbol(&s, a, &symbol)) return -1;
-            op.arg.as.loc = symbol;
+            op.arg.as.loc_ = symbol;
             break;
 
         case '%':
             s++;
             op.arg.kind = BYTECODE_ARG_VAR;
-            if (parse_var(&s, &op.arg.as.var)) return -1;
+            if (parse_var(&s, &op.arg.as.var_)) return -1;
             break;
         
         default: break;

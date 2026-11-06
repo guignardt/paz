@@ -1,7 +1,5 @@
-const main = fn (x: Int) -> Int => (
-    let foo = frob(1, 2, 3);
-    let type = [Int, Int, Int, ];
-    foo * 2
+const main = entry fn (x: Int) -> Int => (
+    frob(x, 1, 2)
 );
 
 const frob = fn (a: Int, b: Int, c: Int) -> Int => (

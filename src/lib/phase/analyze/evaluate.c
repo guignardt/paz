@@ -104,6 +104,19 @@ void analyze_evaluate(Analysis* a) {
     }
     // FIXME: do we need to evaluate patterns explicitly?
 
+    AnFunction entry_function = a->functions.data[a->entry_function];
+    AnTypeId entry_function_type_id = a->expression_types[entry_function.expression];
+    AnType entry_function_type = an_types_get(a->types, entry_function_type_id);
+    if (
+        entry_function_type.kind != AN_TYPE_FUNCTION
+        || entry_function_type.as.function.input != AN_TYPE_ID_INT
+        || entry_function_type.as.function.output != AN_TYPE_ID_INT
+    ) {
+        report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+        report_message("entry function didn't have signature `fn Int -> Int`");
+        report_end();
+    }
+
     free(ev.expression_types);
     id_hash_table_free(&ev.expression_values);
     free(ev.pattern_types);

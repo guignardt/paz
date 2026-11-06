@@ -9,6 +9,7 @@ typedef struct AnPreparer {
     AstBindingSetId binding_set;
     AstPatternId top_level_pattern;
     AnFunctionId function;
+    AnScopeId global_scope;
 } AnPreparer;
 
 static void analyze_prepare_module(AnPreparer w, AstModuleView v);
@@ -24,6 +25,7 @@ void analyze_prepare(Analysis* a, bool consteval) {
         .binding_set = ID_SENTINEL,
         .top_level_pattern = ID_SENTINEL,
         .function = ID_SENTINEL,
+        .global_scope = ID_SENTINEL,
     };
     switch (a->root.kind) {
         case AST_NODE_MODULE:
@@ -39,6 +41,12 @@ void analyze_prepare(Analysis* a, bool consteval) {
             analyze_prepare_binding_set(w, a->root.as.binding_set);
             break;
     }
+
+    if (a->entry_function == -1) {
+        report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+        report_message("missing entry function");
+        report_end();
+    }
 }
 
 void analyze_prepare_module(AnPreparer w, AstModuleView v) {
@@ -47,19 +55,7 @@ void analyze_prepare_module(AnPreparer w, AstModuleView v) {
         an_scope_constant_location(w.analysis->builtin_scope),
         false
     );
-    
-    AnBinding int_binding = {
-        .name = (String) { .data = "Int", .len = 3 },
-        .kind = AN_BINDING_CONSTANT,
-        .as.constant = (AnConstant) {
-            .kind = AN_CONSTANT_TYPE,
-            .as.type = AN_TYPE_ID_INT,
-            .type = AN_TYPE_ID_TYPE,
-        },
-        .top_level_pattern = ID_SENTINEL,
-        .type = AN_TYPE_ID_TYPE,
-    };
-    an_add_binding(&w.analysis->scope_bindings, scope_id, int_binding);
+    w.global_scope = scope_id;
 
     w.scope_location = an_scope_constant_location(scope_id);
     for (
@@ -120,6 +116,20 @@ void analyze_prepare_expression(AnPreparer w, AstExpressionView v, bool consteva
             function = (AnFunction) { .expression = v.id };
             function_id = an_functions_register(&w.analysis->functions, function);
             id_hash_table_insert(&w.analysis->function_ids, v.id, &function_id);
+
+            if (v.data->as.function.entry) {
+                if (w.scope_location.scope != w.global_scope) {
+                    report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                    report_message("entry point wasn't a function in the root scope");
+                    report_end();
+                } else if (w.analysis->entry_function != -1) {
+                    report_begin(SEVERITY_ERROR, DUMMY_ERROR_CODE);
+                    report_message("multiple entry points specified");
+                    report_end();
+                } else {
+                    w.analysis->entry_function = function_id;
+                }
+            }
 
             output_type = AST_VIEW_CHILD_EXPRESSION(v, .as.function.output_type);
             if (output_type.data) {

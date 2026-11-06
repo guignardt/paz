@@ -28,6 +28,7 @@ static TokenKindInfo token_kind_infos[] = {
     [TOKEN_SLASH] =             {   1,  "/",        "`/`"           },
     [TOKEN_PERCENT] =           {   1,  "%",        "`%`"           },
 
+    [TOKEN_ENTRY] =             {   5,  "entry",    "`entry`",      },
     [TOKEN_CONST] =             {   5,  "const",    "`const`"       },
     [TOKEN_LET] =               {   3,  "let",      "`let`"         },
     [TOKEN_FN] =                {   2,  "fn",       "`fn`"          },

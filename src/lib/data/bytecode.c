@@ -21,8 +21,8 @@ void bytecode_push_op(Bytecode* bc, BytecodeOp op) {
     switch (op.arg.kind) {
         case BYTECODE_ARG_NONE: break;
         case BYTECODE_ARG_INT: push_uint64(bc, op.arg.as.int_); break;
-        case BYTECODE_ARG_LOC: push_uint64(bc, op.arg.as.loc); break;
-        case BYTECODE_ARG_VAR: push_uint16(bc, op.arg.as.var); break;
+        case BYTECODE_ARG_LOC: push_uint64(bc, op.arg.as.loc_); break;
+        case BYTECODE_ARG_VAR: push_uint16(bc, op.arg.as.var_); break;
     }
 }
 
@@ -45,8 +45,8 @@ BytecodeOp bytecode_read_op(uint8_t const** bc) {
     #define ARG_KIND_var BYTECODE_ARG_VAR
 
     #define ARG_FIELD_int op.arg.as.int_
-    #define ARG_FIELD_loc op.arg.as.loc
-    #define ARG_FIELD_var op.arg.as.var
+    #define ARG_FIELD_loc op.arg.as.loc_
+    #define ARG_FIELD_var op.arg.as.var_
 
     #define PROC(mnemo, code, ...)                                  \
         case code:                                                  \

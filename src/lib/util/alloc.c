@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#include "util/attr.h"
 #include "util/alloc.h"
 
 BOXED(void) alloc_or_exit(size_t size) {
@@ -12,7 +13,7 @@ BOXED(void) alloc_or_exit(size_t size) {
 BOXED(void) realloc_or_exit(BOXED(void) data, size_t size) {
     if (size == 0) return NULL;
     BOXED(void) ptr = realloc(data, size);
-    if (!ptr) {
+    if (unlikely(!ptr)) {
         fprintf(stderr, "failed to allocate\n");
         exit(-1);
     }
@@ -24,7 +25,7 @@ void reserve(BOXED(void)* p_buf, size_t* p_cap, size_t len, size_t size) {
     size_t cap = *p_cap;
     size_t size_bytes = len * size;
 
-    if (size_bytes <= cap) {
+    if (likely(size_bytes <= cap)) {
         return;
     }
 

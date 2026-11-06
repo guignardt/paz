@@ -40,6 +40,12 @@ Bytecode compile(AstNodes ast, Analysis a) {
     for (AnFunctionId i = 0; i < a.functions.len; i++) {
         emit_symbol(&e); // => function symbol == function id
     }
+
+    // emit entry function call & exit
+    emit_loc(assembler.emitter, a.entry_function);
+    emit_call(assembler.emitter);
+    emit_sys_exit(assembler.emitter);
+
     for (AnFunctionId i = 0; i < a.functions.len; i++) {
         comp_function(i, assembler);
     }
